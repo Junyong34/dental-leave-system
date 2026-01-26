@@ -1,75 +1,259 @@
-# React + TypeScript + Vite
+# 더와이즈 치과병원 연차 관리 시스템 PRD
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 1. 개요
 
-Currently, two official plugins are available:
+### 1.1 목적
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+본 문서는 더와이즈 치과병원 직원(약 80명)의 연차를 효율적으로 관리하기 위한 연차 관리 시스템 개발을 위한 제품 요구사항을 정의한다.
 
-## React Compiler
+### 1.2 배경
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+현재 연차 관리가 수기 또는 분산된 방식으로 운영되어 관리 부담과 오류 가능성이 존재한다. 이를 개선하기 위해 웹 기반 연차 관리 시스템을 구축한다.
 
-Note: This will impact Vite dev & build performances.
+### 1.3 대상 사용자
 
-## Expanding the ESLint configuration
+* 일반 직원
+* 관리자(인사/운영 담당자)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 2. 관련 법적/업무 정책
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 2.1 연차 발생 규칙
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+* 기본 연차: 연 15일
+* 근속 2년 초과 시마다 1일 증가
+* 최대 25일 제한
+
+| 근속연수   | 연차 일수 |
+| ------ | ----- |
+| 1~2년   | 15일   |
+| 3~4년   | 16일   |
+| 5~6년   | 17일   |
+| ...    | ...   |
+| 21년 이상 | 25일   |
+
+### 2.2 연차 이월 규칙
+
+* 미사용 연차는 다음 해로 이월 가능
+* 이월 연차는 다음 해에 반드시 소진
+* 2년 이상 누적 불가
+
+### 2.3 사용 제한
+
+* 일요일 사용 불가
+* 그룹 내 동일 날짜 다수 사용 제한
+
+---
+
+## 3. 핵심 목표
+
+1. 직원별 연차 현황의 투명한 관리
+2. 법적 기준 준수
+3. 그룹별 업무 공백 최소화
+4. 연차 사용 편중 방지
+5. 관리자 업무 자동화
+
+---
+
+## 4. 주요 기능 요구사항
+
+### 4.1 사용자 관리
+
+* 직원 등록/수정/삭제
+* 부서 및 그룹 설정
+* 입사일 관리
+
+### 4.2 연차 자동 산정
+
+* 근속연수 기반 연차 자동 계산
+* 연차 상한(25일) 적용
+* 관리자 수동 조정 기능
+
+### 4.3 연차 차감 로직
+
+* 직전연도 잔여분 우선 차감
+* 이후 당해연도 차감
+* 사용 예정 연차 관리
+
+### 4.4 연차 신청 및 승인
+
+* 캘린더 기반 신청
+* 관리자 승인/반려
+* 중복 시 경고 표시
+
+### 4.5 그룹 충돌 관리
+
+* 동일 그룹 동시 사용 감지
+* 경고 알림 제공
+* 관리자 예외 승인 가능
+
+### 4.6 요일별 사용 가중치 관리
+
+* 요일별 연차 사용 횟수 기록
+* 연말 자동 초기화
+* 신청 시 가중치 표시
+* 우선순위 판단 지원
+
+### 4.7 통계 및 리포트
+
+* 연도별 연차 현황
+* 사용/예정/잔여 분리 표시
+* 개인별/부서별 통계
+
+### 4.8 히스토리 관리
+
+* 모든 연차 변경 로그 저장
+* 날짜/사유/처리자 기록
+* 조회 및 필터 기능
+
+---
+
+## 5. 화면 구성 (UI/UX)
+
+### 5.1 메인 대시보드
+
+* 개인 연차 요약
+* 사용 예정 일정
+
+### 5.2 캘린더 화면
+
+* 월/주/일 보기
+* 직원별 필터
+* 그룹별 색상 구분
+
+### 5.3 관리자 페이지
+
+* 직원 관리
+* 정책 설정
+
+### 5.4 연차 신청 팝업
+
+* 날짜 선택
+* 충돌 알림
+* 가중치 표시
+
+---
+
+## 6. 데이터 구조 설계 (JSON 기반)
+
+### 6.1 직원 스키마
+
+```json
+{
+  "id": "emp_001",
+  "name": "홍길동",
+  "joinDate": "2021-03-01",
+  "groupId": "A",
+  "position": "간호사",
+  "isActive": true
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 6.2 연차 계정 스키마
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```json
+{
+  "employeeId": "emp_001",
+  "year": 2026,
+  "total": 16,
+  "carryOver": 5,
+  "used": 3,
+  "planned": 2,
+  "remain": 16
+}
 ```
+
+### 6.3 연차 신청 스키마
+
+```json
+{
+  "requestId": "req_001",
+  "employeeId": "emp_001",
+  "date": "2026-05-03",
+  "status": "approved",
+  "yearSource": 2025,
+  "createdAt": "2026-04-01"
+}
+```
+
+### 6.4 요일 사용 통계 스키마
+
+```json
+{
+  "employeeId": "emp_001",
+  "year": 2026,
+  "monday": 2,
+  "tuesday": 1,
+  "wednesday": 0,
+  "thursday": 3,
+  "friday": 1,
+  "saturday": 0
+}
+```
+
+### 6.5 로그 스키마
+
+```json
+{
+  "logId": "log_001",
+  "employeeId": "emp_001",
+  "type": "USE",
+  "date": "2026-05-03",
+  "before": 18,
+  "after": 17,
+  "createdAt": "2026-05-03T10:00:00"
+}
+```
+
+---
+
+## 7. 기술 스택
+
+### 7.1 Frontend
+
+* React 19.2.3
+* TypeScript 5.9.3
+* Vite 7.3.1
+* React Router 7.12.0
+* React Router DOM 7.12.0
+* Biome 2.3.11
+
+### 7.2 UI 라이브러리
+
+* FullCalendar 6.1.20
+  * @fullcalendar/react
+  * @fullcalendar/daygrid
+  * @fullcalendar/timegrid
+  * @fullcalendar/interaction
+* Tailwind CSS 4.1.18
+* Lucide React 0.562.0
+* Class Variance Authority 0.7.1
+* Tailwind Merge 3.4.0
+* clsx 2.1.1
+
+### 7.3 폼 & 유틸리티
+
+* React Hook Form 7.71.1
+* date-fns 4.1.0
+
+### 7.4 상태 관리
+
+* Zustand 5.0.10
+
+---
+
+## 8.  라이브러리 추천
+
+### 8.1 full-calendar
+
+* URL: [https://github.com/yassir-jeraidi/full-calendar](https://github.com/yassir-jeraidi/full-calendar)
+* 장점:
+
+    * React 공식 지원
+    * 일정 관리 특화
+    * 커스터마이징 우수
+    * 드래그/드롭 지원
+
+---
+
