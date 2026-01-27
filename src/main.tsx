@@ -1,14 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { RouterProvider } from 'react-router'
 import '@radix-ui/themes/styles.css'
 import './index.css'
 import { Theme } from '@radix-ui/themes'
-import App from './App.tsx'
+import { router } from './router'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Theme>
-      <App />
+      <RouterProvider router={router} />
     </Theme>
   </StrictMode>,
 )
