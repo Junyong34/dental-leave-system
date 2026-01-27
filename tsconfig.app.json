@@ -27,11 +27,7 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["src/components/*"],
-      "@/lib/*": ["src/lib/*"],
-      "@/lib/utils": ["src/lib/utils"],
-      "@/components/ui/*": ["src/components/ui/*"],
-      "@/hooks/*": ["src/hooks/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [
