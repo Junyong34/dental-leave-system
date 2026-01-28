@@ -417,7 +417,17 @@ AM 반차 + PM 반차 = 1일 연차
 * React Router DOM 7.12.0
 * Biome 2.3.11
 
-### 7.2 UI 라이브러리
+### 7.2 Backend & Database
+
+* **Supabase** - BaaS (Backend as a Service)
+  * PostgreSQL 데이터베이스
+  * 실시간 구독 (Realtime)
+  * 인증 시스템 (Auth)
+  * Row Level Security (RLS)
+  * RPC 함수 지원
+* **@supabase/supabase-js** 2.49.2 - Supabase JavaScript 클라이언트
+
+### 7.3 UI 라이브러리
 
 * FullCalendar 6.1.20
   * @fullcalendar/react
@@ -430,20 +440,213 @@ AM 반차 + PM 반차 = 1일 연차
 * Tailwind Merge 3.4.0
 * clsx 2.1.1
 
-### 7.3 폼 & 유틸리티
+### 7.4 폼 & 유틸리티
 
 * React Hook Form 7.71.1
 * date-fns 4.1.0
 
-### 7.4 상태 관리
+### 7.5 상태 관리
 
 * Zustand 5.0.10
+  * persist middleware를 사용한 localStorage 연동
+  * 전역 인증 상태 관리
 
 ---
 
-## 8.  라이브러리 추천
+## 8. Supabase 구조 및 설정
 
-### 8.1 full-calendar
+### 8.1 프로젝트 구조
+
+```
+src/lib/supabase/
+├── api/
+│   ├── auth.ts          # 인증 관련 API (로그인, 로그아웃, 비밀번호 관리)
+│   ├── leave.ts         # 연차 관련 API (조회, 신청, 승인, 취소)
+│   └── user.ts          # 사용자 관련 API (CRUD)
+├── types/
+│   └── database.types.ts # 데이터베이스 타입 정의
+├── client.ts            # Supabase 클라이언트 싱글톤
+└── config.ts            # Supabase 설정 및 환경 변수
+```
+
+### 8.2 데이터베이스 테이블
+
+#### **users** - 사용자(직원) 테이블
+```sql
+- user_id (string, PK): 사용자 ID
+- name (string): 이름
+- join_date (date): 입사일
+- group_id (string): 그룹 ID
+- status (enum): 상태 (ACTIVE, INACTIVE, RESIGNED)
+```
+
+#### **leave_balances** - 연차 잔액 테이블 (연도별)
+```sql
+- user_id (string, PK): 사용자 ID
+- year (number, PK): 연도
+- total (number): 해당 연도 발생 연차 (0.5 단위)
+- used (number): 사용한 연차
+- remain (number): 잔여 연차 (계산 필드)
+- expire_at (date): 만료일
+```
+
+#### **leave_reservations** - 연차 예약 테이블
+```sql
+- id (number, PK): 예약 ID
+- user_id (string): 사용자 ID
+- date (date): 날짜
+- type (enum): FULL(종일) / HALF(반차)
+- session (enum): AM(오전) / PM(오후) / null
+- amount (number): 1.0 or 0.5
+- status (enum): RESERVED / USED / CANCELLED
+- created_at (timestamp): 생성 시각
+```
+
+#### **leave_history** - 연차 사용 이력 테이블
+```sql
+- id (number, PK): 이력 ID
+- user_id (string): 사용자 ID
+- date (date): 사용일
+- type (enum): FULL / HALF
+- session (enum): AM / PM / null
+- amount (number): 1.0 or 0.5
+- weekday (enum): 요일 (MON ~ SUN)
+- source_year (number): 차감된 연차의 발생 연도 (FIFO)
+- used_at (timestamp): 사용 시각
+```
+
+#### **leave_usage_stats** - 요일별 사용 통계
+```sql
+- user_id (string, PK): 사용자 ID
+- weekday (enum, PK): 요일
+- total_used (number): 해당 요일에 사용한 총 연차
+- count (number): 사용 횟수
+```
+
+### 8.3 RPC 함수 (PostgreSQL Functions)
+
+#### `reserve_leave` - 연차 신청
+```typescript
+// 입력
+{
+  p_user_id: string,
+  p_date: string,
+  p_type: 'FULL' | 'HALF',
+  p_session: 'AM' | 'PM' | null
+}
+
+// 출력
+{
+  success: boolean,
+  message: string,
+  reservation_id?: number
+}
+```
+- 잔액 확인, 중복 체크, 그룹 제한 검증을 자동으로 수행
+
+#### `approve_leave` - 연차 승인
+```typescript
+// 입력
+{ p_reservation_id: number }
+
+// 출력
+{ success: boolean, message: string }
+```
+- 예약된 연차를 승인하고 실제 사용 이력으로 전환
+- FIFO 방식으로 잔액 차감
+
+#### `cancel_leave` - 연차 취소
+```typescript
+// 입력
+{ p_reservation_id: number }
+
+// 출력
+{ success: boolean, message: string }
+```
+
+#### `get_user_leave_status` - 사용자 연차 현황 조회
+```typescript
+// 입력
+{ p_user_id: string }
+
+// 출력
+{
+  total: number,    // 전체 발생 연차
+  used: number,     // 사용 완료된 연차
+  reserved: number, // 예약된 연차
+  remain: number    // 잔여 연차
+}
+```
+
+### 8.4 환경 변수 설정
+
+프로젝트 루트에 환경별 `.env` 파일 생성:
+
+```bash
+# .env.development
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key
+
+# .env.qa
+VITE_SUPABASE_URL=https://your-qa-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-qa-anon-key
+
+# .env.production
+VITE_SUPABASE_URL=https://your-prod-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-prod-anon-key
+```
+
+### 8.5 사용 예시
+
+#### 인증
+```typescript
+import { useAuthStore } from '@/store/authStore'
+
+function LoginPage() {
+  const { login, isAuthenticated, user } = useAuthStore()
+
+  const handleLogin = async () => {
+    const success = await login('user@example.com', 'password')
+    if (success) {
+      console.log('로그인 성공')
+    }
+  }
+}
+```
+
+#### 연차 조회
+```typescript
+import { getUserLeaveStatus } from '@/lib/supabase/api/leave'
+
+const result = await getUserLeaveStatus('U001')
+if (result.success && result.data) {
+  console.log('잔여 연차:', result.data.remain)
+}
+```
+
+#### 연차 신청
+```typescript
+import { reserveLeave } from '@/lib/supabase/api/leave'
+
+const result = await reserveLeave('U001', '2025-12-25', 'FULL', null)
+if (result.success) {
+  console.log('연차 신청 완료')
+}
+```
+
+### 8.6 타입 자동 생성
+
+Supabase CLI로 TypeScript 타입을 자동 생성할 수 있습니다:
+
+```bash
+npx supabase gen types typescript --project-id <PROJECT_ID> > src/lib/supabase/types/database.types.ts
+```
+
+---
+
+## 9.  라이브러리 추천
+
+### 9.1 full-calendar
 
 * URL: [https://github.com/yassir-jeraidi/full-calendar](https://github.com/yassir-jeraidi/full-calendar)
 * 장점:
