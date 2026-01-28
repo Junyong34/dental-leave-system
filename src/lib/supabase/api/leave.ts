@@ -81,7 +81,7 @@ export async function getLeaveBalances(
 ): Promise<ApiResponse<LeaveBalance[]>> {
   try {
     let query = supabase
-      .from('leave_balances')
+      .from('leave_balances_display')
       .select('*')
       .eq('user_id', userId)
       .order('year', { ascending: false })
@@ -96,7 +96,7 @@ export async function getLeaveBalances(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data || [] }
+    return { success: true, data: (data || []) as LeaveBalance[] }
   } catch (err) {
     return {
       success: false,
@@ -127,7 +127,7 @@ export async function getLeaveReservations(
 ): Promise<ApiResponse<LeaveReservation[]>> {
   try {
     let query = supabase
-      .from('leave_reservations')
+      .from('leave_reservations_display')
       .select('*')
       .eq('user_id', userId)
       .order('date', { ascending: true })
@@ -142,7 +142,7 @@ export async function getLeaveReservations(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data || [] }
+    return { success: true, data: (data || []) as LeaveReservation[] }
   } catch (err) {
     return {
       success: false,
@@ -171,7 +171,7 @@ export async function getAllLeaveReservations(
 ): Promise<ApiResponse<LeaveReservation[]>> {
   try {
     let query = supabase
-      .from('leave_reservations')
+      .from('leave_reservations_display')
       .select('*')
       .order('date', { ascending: true })
 
@@ -185,7 +185,7 @@ export async function getAllLeaveReservations(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data || [] }
+    return { success: true, data: (data || []) as LeaveReservation[] }
   } catch (err) {
     return {
       success: false,
@@ -218,7 +218,7 @@ export async function getLeaveHistory(
 ): Promise<ApiResponse<LeaveHistory[]>> {
   try {
     let query = supabase
-      .from('leave_history')
+      .from('leave_history_display')
       .select('*')
       .eq('user_id', userId)
       .order('date', { ascending: false })
@@ -237,7 +237,7 @@ export async function getLeaveHistory(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data || [] }
+    return { success: true, data: (data || []) as LeaveHistory[] }
   } catch (err) {
     return {
       success: false,
@@ -397,7 +397,7 @@ export async function getReservationsByDate(
 ): Promise<ApiResponse<LeaveReservation[]>> {
   try {
     const query = supabase
-      .from('leave_reservations')
+      .from('leave_reservations_display')
       .select('*')
       .eq('date', date)
       .eq('status', 'RESERVED')
@@ -411,7 +411,7 @@ export async function getReservationsByDate(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data || [] }
+    return { success: true, data: (data || []) as LeaveReservation[] }
   } catch (err) {
     return {
       success: false,

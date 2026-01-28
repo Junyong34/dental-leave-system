@@ -24,6 +24,34 @@ function toInteger(value: number): number {
 }
 
 /**
+ * 시드 실행 전 관리자 로그인 (RLS 우회용)
+ */
+async function signInAsSeedAdmin(): Promise<void> {
+  const email = import.meta.env.VITE_SEED_ADMIN_EMAIL
+  const password = import.meta.env.VITE_SEED_ADMIN_PASSWORD
+
+  if (!email || !password) {
+    console.warn(
+      '⚠️  VITE_SEED_ADMIN_EMAIL/VITE_SEED_ADMIN_PASSWORD가 설정되지 않았습니다.',
+    )
+    console.warn('⚠️  RLS 정책으로 인해 삽입이 실패할 수 있습니다.')
+    return
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error || !data.session) {
+    console.error('❌ 시드 관리자 로그인 실패:', error?.message ?? 'unknown')
+    throw error ?? new Error('Seed admin login failed')
+  }
+
+  console.log(`✅ 시드 관리자 로그인 완료: ${email}`)
+}
+
+/**
  * 1단계: Supabase Auth에 테스트 사용자 생성
  * (실제로는 Supabase Dashboard에서 수동으로 생성하거나,
  *  Service Role Key를 사용해야 합니다)
@@ -53,11 +81,87 @@ export async function createTestUsers() {
  * 2단계: 샘플 데이터의 user_id를 실제 UUID로 매핑
  * Supabase Dashboard에서 생성한 유저의 UUID를 여기에 입력하세요
  */
-const USER_ID_MAP: Record<string, string> = {
+let USER_ID_MAP: Record<string, string> = {
   // 예시 (실제 UUID로 변경 필요):
   U001: '00000000-0000-0000-0000-000000000001', // 김철수
   U002: '00000000-0000-0000-0000-000000000002', // 이영희
   U003: '00000000-0000-0000-0000-000000000003', // 박민수
+}
+
+const USER_EMAIL_MAP: Record<string, string> = {
+  U001: 'test1@example.com',
+  U002: 'test2@example.com',
+  U003: 'test3@example.com',
+}
+
+/**
+ * 사용자 역할 매핑 (필요 시 수정)
+ * 기본값은 USER로 처리됩니다.
+ */
+const USER_ROLE_MAP: Record<string, 'ADMIN' | 'USER' | 'VIEW'> = {
+  U001: 'USER',
+  U002: 'USER',
+  U003: 'USER',
+}
+
+const PLACEHOLDER_PREFIX = '00000000-0000-0000-0000-0000000000'
+
+function isPlaceholderId(value?: string): boolean {
+  if (!value) return true
+  return value.startsWith(PLACEHOLDER_PREFIX)
+}
+
+async function ensureAuthUser(
+  userKey: string,
+  name: string
+): Promise<string> {
+  const email = USER_EMAIL_MAP[userKey]
+  const password = process.env.SEED_USER_PASSWORD ?? 'password123'
+
+  if (!email) {
+    throw new Error(`USER_EMAIL_MAP에 ${userKey}의 이메일이 없습니다.`)
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name },
+    },
+  })
+
+  if (!error && data.user?.id) {
+    await supabase.auth.signOut()
+    return data.user.id
+  }
+
+  const message = error?.message?.toLowerCase() ?? ''
+  const alreadyRegistered =
+    message.includes('already') || message.includes('registered')
+
+  if (alreadyRegistered) {
+    const signIn = await supabase.auth.signInWithPassword({ email, password })
+    if (signIn.data.user?.id) {
+      await supabase.auth.signOut()
+      return signIn.data.user.id
+    }
+  }
+
+  throw error ?? new Error(`Auth 사용자 생성 실패: ${email}`)
+}
+
+async function resolveUserIdMap(): Promise<Record<string, string>> {
+  const resolved = { ...USER_ID_MAP }
+
+  for (const user of sampleData.users) {
+    const current = resolved[user.user_id]
+    if (isPlaceholderId(current)) {
+      resolved[user.user_id] = await ensureAuthUser(user.user_id, user.name)
+    }
+  }
+
+  USER_ID_MAP = resolved
+  return resolved
 }
 
 /**
@@ -71,6 +175,7 @@ export async function seedUsers() {
     name: user.name,
     join_date: user.join_date,
     group_id: user.group_id,
+    role: user.role ?? USER_ROLE_MAP[user.user_id] ?? 'USER',
     status: user.status,
   }))
 
@@ -185,6 +290,9 @@ export async function seedAll() {
   console.log('🌱 Supabase 시드 데이터 삽입 시작...\n')
 
   try {
+    await resolveUserIdMap()
+    await signInAsSeedAdmin()
+
     // 순서대로 실행 (외래키 제약조건 때문)
     await seedUsers()
     await seedLeaveBalances()
@@ -227,32 +335,32 @@ export async function resetTables() {
 /**
  * CLI에서 직접 실행
  */
-if (require.main === module) {
-  console.log('='.repeat(60))
-  console.log('Supabase 샘플 데이터 마이그레이션 도구')
-  console.log('='.repeat(60))
-  console.log('')
-
-  const command = process.argv[2]
-
-  switch (command) {
-    case 'seed':
-      seedAll()
-      break
-    case 'reset':
-      resetTables()
-      break
-    case 'users':
-      createTestUsers()
-      break
-    default:
-      console.log('사용법:')
-      console.log(
-        '  npx tsx src/lib/supabase/seed.ts users  - 테스트 유저 정보 출력',
-      )
-      console.log(
-        '  npx tsx src/lib/supabase/seed.ts seed   - 시드 데이터 삽입',
-      )
-      console.log('  npx tsx src/lib/supabase/seed.ts reset  - 테이블 초기화')
-  }
-}
+// if (require.main === module) {
+//   console.log('='.repeat(60))
+//   console.log('Supabase 샘플 데이터 마이그레이션 도구')
+//   console.log('='.repeat(60))
+//   console.log('')
+//
+//   const command = process.argv[2]
+//
+//   switch (command) {
+//     case 'seed':
+//       seedAll()
+//       break
+//     case 'reset':
+//       resetTables()
+//       break
+//     case 'users':
+//       createTestUsers()
+//       break
+//     default:
+//       console.log('사용법:')
+//       console.log(
+//         '  npx tsx src/lib/supabase/seed.ts users  - 테스트 유저 정보 출력',
+//       )
+//       console.log(
+//         '  npx tsx src/lib/supabase/seed.ts seed   - 시드 데이터 삽입',
+//       )
+//       console.log('  npx tsx src/lib/supabase/seed.ts reset  - 테이블 초기화')
+//   }
+// }

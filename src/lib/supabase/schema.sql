@@ -292,42 +292,48 @@ CREATE TRIGGER update_leave_reservations_updated_at
 
 CREATE OR REPLACE VIEW leave_balances_display AS
 SELECT
-  user_id,
-  year,
-  total / 10.0 AS total,
-  used / 10.0 AS used,
-  remain / 10.0 AS remain,
-  expire_at,
-  created_at,
-  updated_at
-FROM leave_balances;
+  lb.user_id,
+  lb.year,
+  lb.total / 10.0 AS total,
+  lb.used / 10.0 AS used,
+  lb.remain / 10.0 AS remain,
+  lb.expire_at,
+  lb.created_at,
+  lb.updated_at
+FROM leave_balances lb
+JOIN users u ON u.user_id = lb.user_id
+WHERE u.status = 'ACTIVE';
 
 CREATE OR REPLACE VIEW leave_reservations_display AS
 SELECT
-  id,
-  user_id,
-  date,
-  type,
-  session,
-  amount / 10.0 AS amount,
-  status,
-  created_at,
-  updated_at
-FROM leave_reservations;
+  lr.id,
+  lr.user_id,
+  lr.date,
+  lr.type,
+  lr.session,
+  lr.amount / 10.0 AS amount,
+  lr.status,
+  lr.created_at,
+  lr.updated_at
+FROM leave_reservations lr
+JOIN users u ON u.user_id = lr.user_id
+WHERE u.status = 'ACTIVE';
 
 CREATE OR REPLACE VIEW leave_history_display AS
 SELECT
-  id,
-  user_id,
-  date,
-  type,
-  session,
-  amount / 10.0 AS amount,
-  weekday,
-  source_year,
-  used_at,
-  created_at
-FROM leave_history;
+  lh.id,
+  lh.user_id,
+  lh.date,
+  lh.type,
+  lh.session,
+  lh.amount / 10.0 AS amount,
+  lh.weekday,
+  lh.source_year,
+  lh.used_at,
+  lh.created_at
+FROM leave_history lh
+JOIN users u ON u.user_id = lh.user_id
+WHERE u.status = 'ACTIVE';
 
 COMMENT ON VIEW leave_balances_display IS '화면 표시용 연차 잔액 (DECIMAL 변환)';
 COMMENT ON VIEW leave_reservations_display IS '화면 표시용 연차 예약 (DECIMAL 변환)';

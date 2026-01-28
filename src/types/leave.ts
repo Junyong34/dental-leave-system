@@ -5,6 +5,9 @@
 // 사용자 상태
 export type UserStatus = "ACTIVE" | "INACTIVE" | "RESIGNED";
 
+// 사용자 권한
+export type UserRole = "ADMIN" | "USER" | "VIEW";
+
 // 연차 타입
 export type LeaveType = "FULL" | "HALF";
 
@@ -25,6 +28,7 @@ export interface User {
 	name: string;
 	join_date: string; // YYYY-MM-DD
 	group_id: string;
+	role: UserRole;
 	status: UserStatus;
 }
 

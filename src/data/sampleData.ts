@@ -23,6 +23,7 @@ export const sampleUsers: User[] = [
     name: '김철수',
     join_date: '2020-03-01',
     group_id: 'G01',
+    role: 'USER',
     status: 'ACTIVE',
   },
   {
@@ -30,6 +31,7 @@ export const sampleUsers: User[] = [
     name: '이영희',
     join_date: '2023-01-15',
     group_id: 'G01',
+    role: 'USER',
     status: 'ACTIVE',
   },
   {
@@ -37,14 +39,8 @@ export const sampleUsers: User[] = [
     name: '박민수',
     join_date: '2015-06-01',
     group_id: 'G02',
+    role: 'USER',
     status: 'ACTIVE',
-  },
-  {
-    user_id: 'U004',
-    name: '박준용',
-    join_date: '2023-01-15',
-    group_id: 'G02',
-    status: 'INACTIVE',
   },
 ]
 
