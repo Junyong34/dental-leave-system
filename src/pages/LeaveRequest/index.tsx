@@ -132,6 +132,7 @@ export default function LeaveRequest() {
                 sideOffset={5}
                 collisionPadding={10}
                 align="start"
+                side="bottom"
                 style={{
                   maxHeight: '300px',
                   minWidth: '200px',
@@ -225,6 +226,7 @@ export default function LeaveRequest() {
                 sideOffset={5}
                 collisionPadding={10}
                 align="start"
+                side="bottom"
                 style={{
                   maxHeight: '300px',
                   minWidth: '200px',
@@ -258,6 +260,7 @@ export default function LeaveRequest() {
                   sideOffset={5}
                   collisionPadding={10}
                   align="start"
+                  side="bottom"
                   style={{
                     maxHeight: '300px',
                     minWidth: '200px',

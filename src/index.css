@@ -65,12 +65,15 @@
   }
 
   html {
-    overflow-y: scroll; /* 항상 스크롤바 공간 확보 */
+    overflow-y: scroll !important; /* 항상 세로 스크롤바 표시 */
   }
 
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     min-height: 100vh;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important; /* Radix UI 스크롤 락 완전 비활성화 */
   }
 }
