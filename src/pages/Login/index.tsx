@@ -8,31 +8,58 @@ import {
   TextField,
 } from '@radix-ui/themes'
 import { AlertCircle, Hospital, LogIn } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { getSession } from '@/lib/supabase/api/auth'
+import {
+  consumeFlashNotice,
+  setFlashNotice,
+  type FlashNotice,
+} from '@/utils/flashNotice'
 import { useAuthStore } from '../../store/authStore'
 
 export default function Login() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState<FlashNotice | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const flash = consumeFlashNotice()
+    if (flash?.message) {
+      setNotice(flash)
+    }
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setNotice(null)
 
-    if (!username || !password) {
-      setError('아이디와 비밀번호를 입력해주세요.')
+    if (!email || !password) {
+      setError('이메일과 비밀번호를 입력해주세요.')
       return
     }
 
-    const success = login(username, password)
-    if (success) {
-      navigate('/')
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.')
+    setIsSubmitting(true)
+    try {
+      const success = await login(email, password)
+      if (success) {
+        const session = await getSession()
+        if (!session) {
+          setError('세션을 확인하지 못했습니다. 다시 시도해주세요.')
+          return
+        }
+        setFlashNotice({ message: '로그인되었습니다.', tone: 'green' })
+        navigate('/')
+      } else {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -71,14 +98,15 @@ export default function Login() {
                   mb="2"
                   className="block text-gray-700"
                 >
-                  아이디
+                  이메일
                 </Text>
                 <TextField.Root
                   size="3"
-                  placeholder="아이디를 입력하세요"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
+                  type="email"
+                  placeholder="이메일을 입력하세요"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                 />
               </Box>
 
@@ -111,15 +139,28 @@ export default function Login() {
                 </Callout.Root>
               )}
 
-              <Button type="submit" size="3" className="cursor-pointer">
+              {notice && (
+                <Callout.Root color={notice.tone ?? 'blue'} size="2">
+                  <Callout.Text>{notice.message}</Callout.Text>
+                </Callout.Root>
+              )}
+
+              <Button
+                type="submit"
+                size="3"
+                className="cursor-pointer"
+                disabled={isSubmitting}
+              >
                 <LogIn size={16} />
-                로그인
+                {isSubmitting ? '로그인 중...' : '로그인'}
               </Button>
 
               <Box className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                 <Text size="1" align="center" className="text-gray-600">
                   테스트 계정:{' '}
-                  <span className="font-semibold">admin / admin</span>
+                  <span className="font-semibold">
+                    admin@support.com / admin!2
+                  </span>
                 </Text>
               </Box>
             </Flex>

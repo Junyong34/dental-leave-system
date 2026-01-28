@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router'
+import AuthProvider from '../components/auth/AuthProvider'
 import ProtectedRoute from '../components/auth/ProtectedRoute'
 import Layout from '../components/layout/Layout'
 import Dashboard, { loader as dashboardLoader } from '../pages/Dashboard'
@@ -10,37 +11,42 @@ import Settings from '../pages/Settings'
 
 export const router = createBrowserRouter([
   {
-    path: '/login',
-    element: <Login />,
-  },
-  {
-    path: '/',
-    element: (
-      <ProtectedRoute>
-        <Layout />
-      </ProtectedRoute>
-    ),
+    element: <AuthProvider />,
     children: [
       {
-        index: true,
-        element: <Dashboard />,
-        loader: dashboardLoader,
+        path: '/login',
+        element: <Login />,
       },
       {
-        path: 'request',
-        element: <LeaveRequest />,
-      },
-      {
-        path: 'approval',
-        element: <LeaveApproval />,
-      },
-      {
-        path: 'history',
-        element: <LeaveHistory />,
-      },
-      {
-        path: 'settings',
-        element: <Settings />,
+        path: '/',
+        element: (
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        ),
+        children: [
+          {
+            index: true,
+            element: <Dashboard />,
+            loader: dashboardLoader,
+          },
+          {
+            path: 'request',
+            element: <LeaveRequest />,
+          },
+          {
+            path: 'approval',
+            element: <LeaveApproval />,
+          },
+          {
+            path: 'history',
+            element: <LeaveHistory />,
+          },
+          {
+            path: 'settings',
+            element: <Settings />,
+          },
+        ],
       },
     ],
   },
