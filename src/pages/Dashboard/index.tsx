@@ -21,7 +21,6 @@ export async function loader() {
     ),
   }))
 
-  console.log('⭐️ usersData =>', usersData)
   return { usersData }
 }
 

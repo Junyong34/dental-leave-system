@@ -227,26 +227,41 @@ export function validateLeaveRequest(
 	);
 
 	if (sameDateReservations.length > 0) {
-		// 연차가 이미 있는 경우
+		// 3-1. 종일 연차가 이미 있는 경우 - 어떤 신청도 불가
 		if (sameDateReservations.some((r) => r.type === "FULL")) {
 			return {
 				valid: false,
-				error: "해당 날짜에 이미 연차가 등록되어 있습니다.",
+				error: "해당 날짜에 이미 종일 연차가 등록되어 있습니다.",
 				errorCode: "DUPLICATE_RESERVATION",
 			};
 		}
 
-		// 반차인 경우 같은 세션 체크
-		if (type === "HALF" && session) {
-			const sameSessionExists = sameDateReservations.some(
-				(r) => r.type === "HALF" && r.session === session,
-			);
-			if (sameSessionExists) {
+		// 3-2. 반차가 이미 있는 경우
+		const hasHalfDay = sameDateReservations.some((r) => r.type === "HALF");
+
+		if (hasHalfDay) {
+			// 종일 연차 신청 시 차단 (0.5 + 1.0 = 1.5일이 되므로)
+			if (type === "FULL") {
 				return {
 					valid: false,
-					error: "해당 날짜의 같은 시간대에 이미 반차가 등록되어 있습니다.",
-					errorCode: "INVALID_HALF_DAY",
+					error:
+						"해당 날짜에 이미 반차가 등록되어 있어 종일 연차를 신청할 수 없습니다.",
+					errorCode: "DUPLICATE_RESERVATION",
 				};
+			}
+
+			// 반차 신청 시 같은 세션 체크
+			if (type === "HALF" && session) {
+				const sameSessionExists = sameDateReservations.some(
+					(r) => r.type === "HALF" && r.session === session,
+				);
+				if (sameSessionExists) {
+					return {
+						valid: false,
+						error: "해당 날짜의 같은 시간대에 이미 반차가 등록되어 있습니다.",
+						errorCode: "INVALID_HALF_DAY",
+					};
+				}
 			}
 		}
 	}
