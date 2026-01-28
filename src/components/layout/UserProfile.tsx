@@ -18,7 +18,7 @@ export default function UserProfile() {
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          padding: '8px 16px',
+          padding: '8px 8px',
           backgroundColor: '#f9fafb',
           borderRadius: '8px',
           border: '1px solid #e5e7eb',
@@ -26,8 +26,8 @@ export default function UserProfile() {
       >
         <div
           style={{
-            width: '32px',
-            height: '32px',
+            width: '24px',
+            height: '24px',
             borderRadius: '50%',
             background: 'linear-gradient(to bottom right, #3b82f6, #4f46e5)',
             display: 'flex',
@@ -83,7 +83,6 @@ export default function UserProfile() {
         }}
       >
         <LogOut size={16} />
-        <span>로그아웃</span>
       </div>
     </div>
   )

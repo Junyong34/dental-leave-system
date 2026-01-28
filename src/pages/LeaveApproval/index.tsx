@@ -52,7 +52,7 @@ export default function LeaveApproval() {
   }
 
   return (
-    <div className="rt-r-p-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="rt-r-p-4" style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <h1 className="rt-r-mb-2">연차 승인</h1>
       <p className="rt-r-mb-6" style={{ color: 'var(--gray-11)' }}>
         직원들의 연차 신청을 확인하고 취소할 수 있습니다.
@@ -207,16 +207,15 @@ export default function LeaveApproval() {
                           )}{' '}
                           • {history.source_year}년 연차에서 차감
                         </Text>
+                        <Button
+                          color="orange"
+                          variant="soft"
+                          onClick={() => handleCancelHistory(history.id)}
+                        >
+                          <Trash2 size={16} />
+                          취소 및 복구
+                        </Button>
                       </Flex>
-
-                      <Button
-                        color="orange"
-                        variant="soft"
-                        onClick={() => handleCancelHistory(history.id)}
-                      >
-                        <Trash2 size={16} />
-                        취소 및 복구
-                      </Button>
                     </Flex>
                   </Box>
                 )

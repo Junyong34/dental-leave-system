@@ -12,7 +12,7 @@ const navLinkStyle = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: '8px',
-  padding: '12px 16px',
+  padding: '7px 12px',
   fontSize: '14px',
   fontWeight: '500',
   transition: 'all 0.2s',
