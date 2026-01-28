@@ -37,7 +37,11 @@ export default function Login() {
   }
 
   return (
-    <Box className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4">
+    <Flex
+      align="center"
+      justify="center"
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4"
+    >
       <Card size="4" className="w-full max-w-[420px] shadow-xl">
         <Flex direction="column" gap="6" p="6">
           <Flex direction="column" align="center" gap="3">
@@ -122,6 +126,6 @@ export default function Login() {
           </form>
         </Flex>
       </Card>
-    </Box>
+    </Flex>
   )
 }
