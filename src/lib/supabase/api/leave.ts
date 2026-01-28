@@ -50,7 +50,7 @@ export async function getUserLeaveStatus(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data as LeaveStatus }
+    return { success: true, data: data as unknown as LeaveStatus }
   } catch (err) {
     return {
       success: false,

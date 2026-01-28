@@ -118,7 +118,7 @@ export async function getAllUsers(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data || [] }
+    return { success: true, data: (data || []) as User[] }
   } catch (err) {
     return {
       success: false,
@@ -167,7 +167,7 @@ export async function getUsersByGroup(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: data || [] }
+    return { success: true, data: (data || []) as User[] }
   } catch (err) {
     return {
       success: false,
