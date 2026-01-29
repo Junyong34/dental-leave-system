@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Box,
   Button,
@@ -10,6 +9,7 @@ import {
   TextField,
 } from '@radix-ui/themes'
 import { X } from 'lucide-react'
+import { useState } from 'react'
 import type { LeaveBalance } from '../../types/leave'
 
 interface EditLeaveUsedDialogProps {
@@ -62,7 +62,7 @@ export function EditLeaveUsedDialog({
       return
     }
 
-    onSave(userId, Number.parseInt(selectedYear), usedValue)
+    onSave(userId, Number.parseInt(selectedYear, 10), usedValue)
     onOpenChange(false)
     setNewUsed('')
     setError('')
@@ -139,7 +139,10 @@ export function EditLeaveUsedDialog({
               onChange={(e) => setNewUsed(e.target.value)}
               placeholder="예: 5.5"
             />
-            <Text size="1" style={{ color: 'var(--gray-11)', marginTop: '4px' }}>
+            <Text
+              size="1"
+              style={{ color: 'var(--gray-11)', marginTop: '4px' }}
+            >
               0.5 단위로 입력 가능합니다 (반차 포함)
             </Text>
           </Box>
@@ -179,7 +182,11 @@ export function EditLeaveUsedDialog({
 
           {/* 버튼 */}
           <Flex gap="2" justify="end">
-            <Button variant="soft" color="gray" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="soft"
+              color="gray"
+              onClick={() => onOpenChange(false)}
+            >
               취소
             </Button>
             <Button onClick={handleSave}>저장</Button>

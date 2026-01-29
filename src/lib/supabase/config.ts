@@ -108,7 +108,7 @@ export const supabaseClientOptions: SupabaseClientOptions<'public'> = {
 export function validateSupabaseConfig(): void {
   if (!supabaseConfig.url || supabaseConfig.url === 'your_supabase_url_here') {
     throw new Error(
-      'VITE_SUPABASE_URL이 설정되지 않았습니다. .env 파일을 확인하세요.'
+      'VITE_SUPABASE_URL이 설정되지 않았습니다. .env 파일을 확인하세요.',
     )
   }
 
@@ -117,7 +117,7 @@ export function validateSupabaseConfig(): void {
     supabaseConfig.anonKey === 'your_supabase_publishable_key_here'
   ) {
     throw new Error(
-      'VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY가 설정되지 않았습니다. .env 파일을 확인하세요.'
+      'VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY가 설정되지 않았습니다. .env 파일을 확인하세요.',
     )
   }
 }

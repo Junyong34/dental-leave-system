@@ -1,12 +1,25 @@
-import { Box, Heading, Text, Card, Flex, Table, Button, TextField } from '@radix-ui/themes';
-import { Search } from 'lucide-react';
+import {
+  Box,
+  Button,
+  Card,
+  Flex,
+  Heading,
+  Table,
+  Text,
+  TextField,
+} from '@radix-ui/themes'
+import { Search } from 'lucide-react'
 
 export default function UserLeaveManagement() {
   return (
     <Box>
-      <Heading size="4" mb="4">유저 별 연차 개수 수정</Heading>
-      <Text color="gray" size="2" mb="6">사용자별 연차 할당량을 관리하고 수정할 수 있습니다.</Text>
-      
+      <Heading size="4" mb="4">
+        유저 별 연차 개수 수정
+      </Heading>
+      <Text color="gray" size="2" mb="6">
+        사용자별 연차 할당량을 관리하고 수정할 수 있습니다.
+      </Text>
+
       <Card mt="4">
         <Flex direction="column" gap="4">
           <Flex justify="between" align="center">
@@ -40,7 +53,9 @@ export default function UserLeaveManagement() {
                 <Table.Cell>3</Table.Cell>
                 <Table.Cell>12</Table.Cell>
                 <Table.Cell>
-                  <Button size="1" variant="outline">수정</Button>
+                  <Button size="1" variant="outline">
+                    수정
+                  </Button>
                 </Table.Cell>
               </Table.Row>
               <Table.Row>
@@ -50,7 +65,9 @@ export default function UserLeaveManagement() {
                 <Table.Cell>5</Table.Cell>
                 <Table.Cell>13</Table.Cell>
                 <Table.Cell>
-                  <Button size="1" variant="outline">수정</Button>
+                  <Button size="1" variant="outline">
+                    수정
+                  </Button>
                 </Table.Cell>
               </Table.Row>
             </Table.Body>
@@ -58,5 +75,5 @@ export default function UserLeaveManagement() {
         </Flex>
       </Card>
     </Box>
-  );
+  )
 }

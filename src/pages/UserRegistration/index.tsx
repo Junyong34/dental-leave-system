@@ -11,10 +11,7 @@ import { AlertCircle, UserPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { getCurrentUser } from '@/lib/supabase/api/auth'
-import {
-  createUser,
-  getUserByIdOptional,
-} from '@/lib/supabase/api/user'
+import { createUser, getUserByIdOptional } from '@/lib/supabase/api/user'
 import { setFlashNotice } from '@/utils/flashNotice'
 
 export default function UserRegistration() {
@@ -28,10 +25,7 @@ export default function UserRegistration() {
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const navigate = useNavigate()
 
-  const today = useMemo(
-    () => new Date().toISOString().split('T')[0],
-    [],
-  )
+  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
 
   useEffect(() => {
     let isMounted = true

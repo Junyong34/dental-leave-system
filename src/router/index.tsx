@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import AuthProvider from '../components/auth/AuthProvider'
 import ProtectedRoute from '../components/auth/ProtectedRoute'
+import RoleRoute from '../components/auth/RoleRoute'
 import Layout from '../components/layout/Layout'
 import Dashboard, { loader as dashboardLoader } from '../pages/Dashboard'
 import LeaveApproval from '../pages/LeaveApproval'
@@ -48,7 +49,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'approval',
-            element: <LeaveApproval />,
+            element: (
+              <RoleRoute requiredRoles={['ADMIN']}>
+                <LeaveApproval />
+              </RoleRoute>
+            ),
           },
           {
             path: 'history',
@@ -56,7 +61,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            element: <Settings />,
+            element: (
+              <RoleRoute requiredRoles={['ADMIN']}>
+                <Settings />
+              </RoleRoute>
+            ),
             children: [
               {
                 index: true,

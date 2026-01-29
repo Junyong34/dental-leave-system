@@ -28,12 +28,12 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from './types/database.types'
 import {
-  supabaseConfig,
   supabaseClientOptions,
+  supabaseConfig,
   validateSupabaseConfig,
 } from './config'
+import type { Database } from './types/database.types'
 
 // 환경 변수 검증 (앱 시작 시 자동 실행)
 validateSupabaseConfig()
@@ -68,7 +68,7 @@ validateSupabaseConfig()
 export const supabase = createClient<Database>(
   supabaseConfig.url,
   supabaseConfig.anonKey,
-  supabaseClientOptions
+  supabaseClientOptions,
 )
 
 /**

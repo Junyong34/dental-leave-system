@@ -227,7 +227,9 @@ export default function LeaveApproval() {
           ) : (
             <Flex direction="column" gap="2">
               {usedLeaves.map((reservation) => {
-                const user = users.find((u) => u.user_id === reservation.user_id)
+                const user = users.find(
+                  (u) => u.user_id === reservation.user_id,
+                )
 
                 return (
                   <Box

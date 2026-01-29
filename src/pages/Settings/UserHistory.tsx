@@ -13,12 +13,14 @@ import { AlertCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { getAllLeaveHistory } from '@/lib/supabase/api/leave'
 import { getAllUsers } from '@/lib/supabase/api/user'
-import type { LeaveHistory } from '@/types/leave'
-import type { User } from '@/types/leave'
+import type { LeaveHistory, User } from '@/types/leave'
 
 type UserNameMap = Record<string, string>
 
-const formatTypeLabel = (type: LeaveHistory['type'], session: LeaveHistory['session']) => {
+const formatTypeLabel = (
+  type: LeaveHistory['type'],
+  session: LeaveHistory['session'],
+) => {
   if (type === 'FULL') return '전일'
   if (type === 'HALF') {
     if (session === 'AM') return '반차(오전)'

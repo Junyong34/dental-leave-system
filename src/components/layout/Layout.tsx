@@ -1,8 +1,8 @@
 import { Callout, Text } from '@radix-ui/themes'
 import { useEffect, useState } from 'react'
 import { Outlet } from 'react-router'
-import Header from './Header'
 import { consumeFlashNotice, type FlashNotice } from '@/utils/flashNotice'
+import Header from './Header'
 
 export default function Layout() {
   const [notice, setNotice] = useState<FlashNotice | null>(null)

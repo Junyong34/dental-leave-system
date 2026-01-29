@@ -21,7 +21,7 @@ export interface LoginResult {
  */
 export type AuthStateChangeCallback = (
   event: AuthChangeEvent,
-  session: Session | null
+  session: Session | null,
 ) => void
 
 /**
@@ -41,7 +41,7 @@ export type AuthStateChangeCallback = (
  */
 export async function loginWithEmail(
   email: string,
-  password: string
+  password: string,
 ): Promise<LoginResult> {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -68,7 +68,8 @@ export async function loginWithEmail(
       success: false,
       session: null,
       user: null,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
@@ -180,7 +181,7 @@ export async function getCurrentUser(): Promise<User | null> {
  * ```
  */
 export function subscribeToAuthChanges(
-  callback: AuthStateChangeCallback
+  callback: AuthStateChangeCallback,
 ): () => void {
   const {
     data: { subscription },
@@ -206,7 +207,7 @@ export function subscribeToAuthChanges(
  * ```
  */
 export async function sendPasswordResetEmail(
-  email: string
+  email: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -221,7 +222,8 @@ export async function sendPasswordResetEmail(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
@@ -241,7 +243,7 @@ export async function sendPasswordResetEmail(
  * ```
  */
 export async function updatePassword(
-  newPassword: string
+  newPassword: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase.auth.updateUser({
@@ -256,7 +258,8 @@ export async function updatePassword(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }

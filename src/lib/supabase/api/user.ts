@@ -21,8 +21,8 @@
  * ```
  */
 
-import { supabase } from '../client'
 import type { User, UserStatus } from '@/types/leave'
+import { supabase } from '../client'
 
 /**
  * API 응답 타입
@@ -75,7 +75,8 @@ export async function getUserById(userId: string): Promise<ApiResponse<User>> {
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
@@ -90,7 +91,7 @@ export async function getUserById(userId: string): Promise<ApiResponse<User>> {
  * @returns {Promise<ApiResponse<User | null>>} 사용자 정보 또는 null
  */
 export async function getUserByIdOptional(
-  userId: string
+  userId: string,
 ): Promise<ApiResponse<User | null>> {
   try {
     const { data, error } = await supabase
@@ -107,7 +108,8 @@ export async function getUserByIdOptional(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
@@ -135,10 +137,13 @@ export async function getUserByIdOptional(
  * ```
  */
 export async function getAllUsers(
-  status?: UserStatus
+  status?: UserStatus,
 ): Promise<ApiResponse<User[]>> {
   try {
-    let query = supabase.from('users').select('*').order('name', { ascending: true })
+    let query = supabase
+      .from('users')
+      .select('*')
+      .order('name', { ascending: true })
 
     if (status) {
       query = query.eq('status', status)
@@ -154,7 +159,8 @@ export async function getAllUsers(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
@@ -180,7 +186,7 @@ export async function getAllUsers(
  */
 export async function getUsersByGroup(
   groupId: string,
-  status?: UserStatus
+  status?: UserStatus,
 ): Promise<ApiResponse<User[]>> {
   try {
     let query = supabase
@@ -203,7 +209,8 @@ export async function getUsersByGroup(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
@@ -232,7 +239,7 @@ export async function getUsersByGroup(
  */
 export async function updateUser(
   userId: string,
-  updates: Partial<Omit<User, 'user_id'>>
+  updates: Partial<Omit<User, 'user_id'>>,
 ): Promise<ApiResponse<User>> {
   try {
     const { data, error } = await supabase
@@ -250,7 +257,8 @@ export async function updateUser(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
@@ -276,7 +284,7 @@ export async function updateUser(
  */
 export async function updateUserStatus(
   userId: string,
-  status: UserStatus
+  status: UserStatus,
 ): Promise<ApiResponse<User>> {
   return updateUser(userId, { status })
 }
@@ -321,7 +329,8 @@ export async function createUser(user: User): Promise<ApiResponse<User>> {
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
     }
   }
 }
