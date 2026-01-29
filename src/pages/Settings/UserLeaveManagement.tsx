@@ -61,20 +61,22 @@ export default function UserLeaveManagement() {
       if (!isMounted) return
 
       let hasBalanceError = false
-      const nextRows = users.flatMap((user, index): UserLeaveRow[] => {
-        const result = balanceResults[index]
-        if (!result.success) {
-          hasBalanceError = true
-          return [{ user, balance: null }]
-        }
+      const nextRows: UserLeaveRow[] = users.flatMap(
+        (user, index): UserLeaveRow[] => {
+          const result = balanceResults[index]
+          if (!result.success) {
+            hasBalanceError = true
+            return [{ user, balance: null }]
+          }
 
-        const balances = result.data ?? []
-        if (balances.length === 0) {
-          return [{ user, balance: null }]
-        }
+          const balances = result.data ?? []
+          if (balances.length === 0) {
+            return [{ user, balance: null }]
+          }
 
-        return balances.map((balance) => ({ user, balance }))
-      })
+          return balances.map((balance) => ({ user, balance }))
+        },
+      )
 
       setRows(nextRows)
       if (hasBalanceError) {
