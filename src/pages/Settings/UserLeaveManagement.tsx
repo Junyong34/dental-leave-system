@@ -15,21 +15,25 @@ import { AlertCircle, CheckCircle2, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { getLeaveBalances, updateLeaveBalance } from '@/lib/supabase/api/leave'
 import { getAllUsers } from '@/lib/supabase/api/user'
+import { supabase } from '@/lib/supabase/client'
 import type { LeaveBalance, User } from '@/types/leave'
 
 type UserLeaveRow = { user: User; balance: LeaveBalance | null }
+type EditTarget = {
+  user: User
+  balance: LeaveBalance | null
+  mode: 'edit' | 'create'
+}
 
 export default function UserLeaveManagement() {
+  const currentYear = useMemo(() => new Date().getFullYear(), [])
   const [rows, setRows] = useState<UserLeaveRow[]>([])
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<{
-    user: User
-    balance: LeaveBalance
-  } | null>(null)
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
   const [newTotal, setNewTotal] = useState('')
   const [saveError, setSaveError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -106,8 +110,17 @@ export default function UserLeaveManagement() {
   const handleOpenEdit = (row: UserLeaveRow) => {
     if (!row.balance) return
 
-    setEditTarget({ user: row.user, balance: row.balance })
+    setEditTarget({ user: row.user, balance: row.balance, mode: 'edit' })
     setNewTotal(String(row.balance.total))
+    setSaveError('')
+    setIsDialogOpen(true)
+  }
+
+  const handleOpenCreate = (row: UserLeaveRow) => {
+    if (row.balance) return
+
+    setEditTarget({ user: row.user, balance: null, mode: 'create' })
+    setNewTotal('')
     setSaveError('')
     setIsDialogOpen(true)
   }
@@ -135,19 +148,100 @@ export default function UserLeaveManagement() {
       return
     }
 
-    if (totalValue < editTarget.balance.used) {
-      setSaveError(
-        `총 연차는 사용 연차(${editTarget.balance.used}일)보다 작을 수 없습니다.`,
-      )
-      return
+    let currentBalance: LeaveBalance | null = null
+    if (editTarget.mode === 'edit') {
+      currentBalance = editTarget.balance
+      if (!currentBalance) {
+        setSaveError('연차 정보를 찾을 수 없습니다.')
+        return
+      }
+      if (totalValue < currentBalance.used) {
+        setSaveError(
+          `총 연차는 사용 연차(${currentBalance.used}일)보다 작을 수 없습니다.`,
+        )
+        return
+      }
     }
 
     setIsSaving(true)
     setSaveError('')
 
+    if (editTarget.mode === 'create') {
+      const { data: existing, error: existingError } = await supabase
+        .from('leave_balances')
+        .select('year')
+        .eq('user_id', editTarget.user.user_id)
+        .eq('year', currentYear)
+        .maybeSingle()
+
+      if (existingError) {
+        setSaveError(existingError.message || '조회에 실패했습니다.')
+        setIsSaving(false)
+        return
+      }
+
+      if (existing) {
+        setSaveError(`${currentYear}년 연차 데이터가 이미 존재합니다.`)
+        setIsSaving(false)
+        return
+      }
+
+      const totalInt = Math.round(totalValue * 10)
+      const expireAt = `${currentYear}-12-31`
+      const { error } = await supabase.from('leave_balances').insert({
+        user_id: editTarget.user.user_id,
+        year: currentYear,
+        total: totalInt,
+        used: 0,
+        remain: totalInt,
+        expire_at: expireAt,
+      })
+
+      if (error) {
+        setSaveError(error.message || '추가에 실패했습니다.')
+        setIsSaving(false)
+        return
+      }
+
+      setRows((prev) => {
+        const filtered = prev.filter(
+          (row) =>
+            !(
+              row.user.user_id === editTarget.user.user_id &&
+              row.balance === null
+            ),
+        )
+        return [
+          ...filtered,
+          {
+            user: editTarget.user,
+            balance: {
+              user_id: editTarget.user.user_id,
+              year: currentYear,
+              total: totalValue,
+              used: 0,
+              remain: totalValue,
+              expire_at: expireAt,
+            },
+          },
+        ]
+      })
+
+      setSaveSuccess(`${currentYear}년 연차가 추가되었습니다.`)
+      setIsSaving(false)
+      handleDialogChange(false)
+      return
+    }
+
+    if (!currentBalance) {
+      setSaveError('연차 정보를 찾을 수 없습니다.')
+      setIsSaving(false)
+      return
+    }
+
     const result = await updateLeaveBalance(
       editTarget.user.user_id,
-      editTarget.balance.year,
+      currentBalance.year,
       totalValue,
     )
 
@@ -163,7 +257,7 @@ export default function UserLeaveManagement() {
       prev.map((row) => {
         if (
           row.user.user_id !== editTarget.user.user_id ||
-          row.balance?.year !== editTarget.balance.year
+          row.balance?.year !== currentBalance?.year
         ) {
           return row
         }
@@ -256,14 +350,24 @@ export default function UserLeaveManagement() {
                     <Table.Cell>{row.balance?.used ?? '-'}</Table.Cell>
                     <Table.Cell>{row.balance?.remain ?? '-'}</Table.Cell>
                     <Table.Cell>
-                      <Button
-                        size="1"
-                        variant="outline"
-                        disabled={!row.balance}
-                        onClick={() => handleOpenEdit(row)}
-                      >
-                        수정
-                      </Button>
+                      {row.user.name !== 'Admin' &&
+                        (row.balance ? (
+                          <Button
+                            size="1"
+                            variant="outline"
+                            onClick={() => handleOpenEdit(row)}
+                          >
+                            수정
+                          </Button>
+                        ) : (
+                          <Button
+                            size="1"
+                            variant="solid"
+                            onClick={() => handleOpenCreate(row)}
+                          >
+                            신규 추가
+                          </Button>
+                        ))}
                     </Table.Cell>
                   </Table.Row>
                 ))
@@ -276,7 +380,11 @@ export default function UserLeaveManagement() {
       <Dialog.Root open={isDialogOpen} onOpenChange={handleDialogChange}>
         <Dialog.Content maxWidth="520px">
           <Dialog.Title>
-            {editTarget?.user.name ? `${editTarget.user.name}님 연차 수정` : ''}
+            {editTarget?.user.name
+              ? editTarget.mode === 'edit'
+                ? `${editTarget.user.name}님 연차 수정`
+                : `${editTarget.user.name}님 연차 신규 추가`
+              : ''}
           </Dialog.Title>
           <Dialog.Close>
             <IconButton
@@ -293,7 +401,9 @@ export default function UserLeaveManagement() {
             <Flex direction="column" gap="4" mt="4">
               <Box>
                 <Text size="2" weight="medium">
-                  {editTarget.balance.year}년 연차 현황
+                  {editTarget.mode === 'edit' && editTarget.balance
+                    ? `${editTarget.balance.year}년 연차 현황`
+                    : `${currentYear}년 연차 신규 추가`}
                 </Text>
               </Box>
 
@@ -306,15 +416,27 @@ export default function UserLeaveManagement() {
                 }}
               >
                 <Flex direction="column" gap="1">
-                  <Text size="2">
-                    총 연차: <strong>{editTarget.balance.total}일</strong>
-                  </Text>
-                  <Text size="2">
-                    사용 연차: <strong>{editTarget.balance.used}일</strong>
-                  </Text>
-                  <Text size="2">
-                    잔여 연차: <strong>{editTarget.balance.remain}일</strong>
-                  </Text>
+                  {editTarget.mode === 'edit' && editTarget.balance ? (
+                    <>
+                      <Text size="2">
+                        총 연차: <strong>{editTarget.balance.total}일</strong>
+                      </Text>
+                      <Text size="2">
+                        사용 연차: <strong>{editTarget.balance.used}일</strong>
+                      </Text>
+                      <Text size="2">
+                        잔여 연차:{' '}
+                        <strong>{editTarget.balance.remain}일</strong>
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text size="2">현재 연차 데이터가 없습니다.</Text>
+                      <Text size="2">
+                        사용 연차: <strong>0일</strong>
+                      </Text>
+                    </>
+                  )}
                 </Flex>
               </Box>
 
@@ -351,7 +473,9 @@ export default function UserLeaveManagement() {
                       : Number(
                           (
                             Number.parseFloat(newTotal) -
-                            editTarget.balance.used
+                            (editTarget.mode === 'edit' && editTarget.balance
+                              ? editTarget.balance.used
+                              : 0)
                           ).toFixed(1),
                         )}
                     일
@@ -384,7 +508,11 @@ export default function UserLeaveManagement() {
                   취소
                 </Button>
                 <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? '저장 중...' : '저장'}
+                  {isSaving
+                    ? '저장 중...'
+                    : editTarget.mode === 'edit'
+                      ? '저장'
+                      : '추가'}
                 </Button>
               </Flex>
             </Flex>
