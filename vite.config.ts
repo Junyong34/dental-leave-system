@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
+  console.log('⭐️ com =>', command, mode)
   return {
     plugins: [
       react({

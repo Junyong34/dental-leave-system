@@ -8,7 +8,6 @@ import type {
   LeaveHistory,
   LeaveReservation,
   LeaveSession,
-  LeaveStatus,
   LeaveType,
   ReservationStatus,
 } from '@/types/leave'
@@ -59,7 +58,7 @@ export async function getLeaveBalances(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: (data || []) as LeaveBalance[] }
+    return { success: true, data: (data || []) as unknown as LeaveBalance[] }
   } catch (err) {
     return {
       success: false,
@@ -105,7 +104,10 @@ export async function getLeaveReservations(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: (data || []) as LeaveReservation[] }
+    return {
+      success: true,
+      data: (data || []) as unknown as LeaveReservation[],
+    }
   } catch (err) {
     return {
       success: false,
@@ -148,7 +150,10 @@ export async function getAllLeaveReservations(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: (data || []) as LeaveReservation[] }
+    return {
+      success: true,
+      data: (data || []) as unknown as LeaveReservation[],
+    }
   } catch (err) {
     return {
       success: false,
@@ -200,7 +205,7 @@ export async function getLeaveHistory(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: (data || []) as LeaveHistory[] }
+    return { success: true, data: (data || []) as unknown as LeaveHistory[] }
   } catch (err) {
     return {
       success: false,
@@ -246,8 +251,9 @@ export async function reserveLeave(
     }
 
     return {
-      success: data?.success || false,
-      data: data || undefined,
+      success: !!data?.success,
+      data:
+        (data as { reservation_id?: number; message?: string }) || undefined,
       error: data?.success ? undefined : data?.message,
     }
   } catch (err) {
@@ -286,8 +292,8 @@ export async function cancelLeave(
     }
 
     return {
-      success: data?.success || false,
-      data: data || undefined,
+      success: !!data?.success,
+      data: (data as { message?: string }) || undefined,
       error: data?.success ? undefined : data?.message,
     }
   } catch (err) {
@@ -326,8 +332,8 @@ export async function cancelLeaveHistory(
     }
 
     return {
-      success: data?.success || false,
-      data: data || undefined,
+      success: !!data?.success,
+      data: (data as { message?: string }) || undefined,
       error: data?.success ? undefined : data?.message,
     }
   } catch (err) {
@@ -366,8 +372,8 @@ export async function cancelLeaveUsedReservation(
     }
 
     return {
-      success: data?.success || false,
-      data: data || undefined,
+      success: !!data?.success,
+      data: (data as { message?: string }) || undefined,
       error: data?.success ? undefined : data?.message,
     }
   } catch (err) {
@@ -418,7 +424,7 @@ export async function getAllLeaveHistory(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: (data || []) as LeaveHistory[] }
+    return { success: true, data: (data || []) as unknown as LeaveHistory[] }
   } catch (err) {
     return {
       success: false,

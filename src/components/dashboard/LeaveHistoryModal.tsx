@@ -79,12 +79,12 @@ export function LeaveHistoryModal({
                     }}
                   >
                     <Flex justify="between" align="center" mb="2">
-                      <Text size="3" weight="semibold">
+                      <Text size="3" weight="regular">
                         {item.date}
                       </Text>
                       <Text
                         size="2"
-                        weight="semibold"
+                        weight="regular"
                         style={{
                           color:
                             item.type === 'FULL'

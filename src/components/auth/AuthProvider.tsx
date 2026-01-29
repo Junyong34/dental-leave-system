@@ -23,6 +23,7 @@ export default function AuthProvider() {
           return
         }
 
+        // @ts-expect-error
         if (event === 'TOKEN_REFRESH_FAILED') {
           setUser(null, null)
           setFlashNotice({

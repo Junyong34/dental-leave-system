@@ -104,6 +104,11 @@ interface AuthState {
   loading: boolean
 
   /**
+   * 현재 로그인한 사용자 이름 (user_metadata.name)
+   */
+  username: string | null
+
+  /**
    * 이메일/비밀번호로 로그인
    *
    * @param email - 사용자 이메일
@@ -180,6 +185,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       user: null,
       session: null,
+      username: null,
       loading: true,
 
       /**
@@ -195,6 +201,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             user: result.user,
             session: result.session,
+            username:
+              result.user.user_metadata?.name || result.user.email || null,
           })
           return true
         }
@@ -213,6 +221,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           user: null,
           session: null,
+          username: null,
         })
       },
 
@@ -233,12 +242,14 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             user,
             session,
+            username: user.user_metadata?.name || user.email || null,
           })
         } else {
           set({
             isAuthenticated: false,
             user: null,
             session: null,
+            username: null,
           })
         }
 
@@ -256,6 +267,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: !!user && !!session,
           user,
           session,
+          username: user?.user_metadata?.name || user?.email || null,
         })
       },
     }),
@@ -270,6 +282,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         user: state.user,
+        username: state.username,
       }),
     },
   ),
