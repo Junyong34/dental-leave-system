@@ -16,7 +16,7 @@ export default function Settings() {
       icon: <UserCog size={18} />,
     },
     {
-      label: '유저 히스토리',
+      label: '유저 히스토리 데이터 조회',
       path: '/settings/history',
       icon: <History size={18} />,
     },
