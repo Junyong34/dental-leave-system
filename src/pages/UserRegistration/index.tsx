@@ -10,7 +10,7 @@ import {
 import { AlertCircle, UserPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { getCurrentUser } from '@/lib/supabase/api/auth'
+import { getCurrentUser, updatePassword } from '@/lib/supabase/api/auth'
 import { createUser, getUserByIdOptional } from '@/lib/supabase/api/user'
 import { setFlashNotice } from '@/utils/flashNotice'
 
@@ -20,6 +20,8 @@ export default function UserRegistration() {
   const [name, setName] = useState('')
   const [joinDate, setJoinDate] = useState('')
   const [groupId, setGroupId] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
@@ -88,6 +90,16 @@ export default function UserRegistration() {
       return
     }
 
+    if (!password || !passwordConfirm) {
+      setError('비밀번호와 비밀번호 확인을 입력해주세요.')
+      return
+    }
+
+    if (password !== passwordConfirm) {
+      setError('비밀번호가 일치하지 않습니다.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const existing = await getUserByIdOptional(userId)
@@ -98,6 +110,12 @@ export default function UserRegistration() {
 
       if (existing.data) {
         setError('이미 등록된 사용자입니다.')
+        return
+      }
+
+      const passwordUpdate = await updatePassword(password)
+      if (!passwordUpdate.success) {
+        setError(passwordUpdate.error || '비밀번호 설정에 실패했습니다.')
         return
       }
 
@@ -227,6 +245,48 @@ export default function UserRegistration() {
                   value={groupId}
                   onChange={(e) => setGroupId(e.target.value)}
                   disabled={isLoadingUser || isSubmitting}
+                />
+              </Box>
+
+              <Box>
+                <Text
+                  as="label"
+                  size="2"
+                  weight="medium"
+                  mb="2"
+                  className="block text-gray-700"
+                >
+                  비밀번호
+                </Text>
+                <TextField.Root
+                  size="3"
+                  type="password"
+                  placeholder="비밀번호를 입력하세요"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoadingUser || isSubmitting}
+                  autoComplete="new-password"
+                />
+              </Box>
+
+              <Box>
+                <Text
+                  as="label"
+                  size="2"
+                  weight="medium"
+                  mb="2"
+                  className="block text-gray-700"
+                >
+                  비밀번호 확인
+                </Text>
+                <TextField.Root
+                  size="3"
+                  type="password"
+                  placeholder="비밀번호를 다시 입력하세요"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  disabled={isLoadingUser || isSubmitting}
+                  autoComplete="new-password"
                 />
               </Box>
 
