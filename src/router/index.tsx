@@ -8,6 +8,9 @@ import LeaveHistory from '../pages/LeaveHistory'
 import LeaveRequest from '../pages/LeaveRequest'
 import Login from '../pages/Login'
 import Settings from '../pages/Settings'
+import GeneralSettings from '../pages/Settings/GeneralSettings'
+import UserHistory from '../pages/Settings/UserHistory'
+import UserLeaveManagement from '../pages/Settings/UserLeaveManagement'
 import UserRegistration from '../pages/UserRegistration'
 
 export const router = createBrowserRouter([
@@ -54,6 +57,20 @@ export const router = createBrowserRouter([
           {
             path: 'settings',
             element: <Settings />,
+            children: [
+              {
+                index: true,
+                element: <GeneralSettings />,
+              },
+              {
+                path: 'leave-management',
+                element: <UserLeaveManagement />,
+              },
+              {
+                path: 'history',
+                element: <UserHistory />,
+              },
+            ],
           },
         ],
       },
