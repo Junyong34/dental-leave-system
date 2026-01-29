@@ -81,6 +81,38 @@ export async function getUserById(userId: string): Promise<ApiResponse<User>> {
 }
 
 /**
+ * 사용자 정보 조회 (ID로, 없으면 null)
+ *
+ * user_id를 사용하여 특정 사용자의 정보를 조회합니다.
+ * 존재하지 않으면 null을 반환합니다.
+ *
+ * @param userId - 사용자 ID (user_id)
+ * @returns {Promise<ApiResponse<User | null>>} 사용자 정보 또는 null
+ */
+export async function getUserByIdOptional(
+  userId: string
+): Promise<ApiResponse<User | null>> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data: (data as User) ?? null }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+    }
+  }
+}
+
+/**
  * 모든 사용자 목록 조회
  *
  * 모든 사용자를 이름 순으로 정렬하여 조회합니다.

@@ -8,6 +8,7 @@ import LeaveHistory from '../pages/LeaveHistory'
 import LeaveRequest from '../pages/LeaveRequest'
 import Login from '../pages/Login'
 import Settings from '../pages/Settings'
+import UserRegistration from '../pages/UserRegistration'
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,14 @@ export const router = createBrowserRouter([
       {
         path: '/login',
         element: <Login />,
+      },
+      {
+        path: '/register',
+        element: (
+          <ProtectedRoute>
+            <UserRegistration />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '/',
