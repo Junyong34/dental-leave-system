@@ -340,6 +340,46 @@ export async function cancelLeaveHistory(
 }
 
 /**
+ * 사용 완료된 예약을 취소하고 복구 (예약 ID 기반)
+ *
+ * @param reservationId - 예약 ID
+ * @returns 취소 및 복구 결과
+ *
+ * @example
+ * ```ts
+ * const result = await cancelLeaveUsedReservation(123)
+ * if (result.success) {
+ *   console.log('연차 취소 및 복구 완료')
+ * }
+ * ```
+ */
+export async function cancelLeaveUsedReservation(
+  reservationId: number,
+): Promise<ApiResponse<{ message?: string }>> {
+  try {
+    const { data, error } = await supabase.rpc('cancel_leave_by_reservation', {
+      p_reservation_id: reservationId,
+    })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return {
+      success: data?.success || false,
+      data: data || undefined,
+      error: data?.success ? undefined : data?.message,
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+    }
+  }
+}
+
+/**
  * 모든 사용자의 연차 히스토리 조회 (관리자용)
  *
  * @param startDate - 시작일 (선택)

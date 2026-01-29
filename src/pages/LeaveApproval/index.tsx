@@ -3,12 +3,11 @@ import { Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import {
   cancelLeave,
-  cancelLeaveHistory as cancelLeaveHistoryAPI,
-  getAllLeaveHistory,
+  cancelLeaveUsedReservation,
   getAllLeaveReservations,
 } from '@/lib/supabase/api/leave'
 import { getAllUsers } from '@/lib/supabase/api/user'
-import type { LeaveHistory, LeaveReservation, User } from '@/types/leave'
+import type { LeaveReservation, User } from '@/types/leave'
 
 export default function LeaveApproval() {
   const [success, setSuccess] = useState<string>('')
@@ -19,18 +18,17 @@ export default function LeaveApproval() {
   // 데이터 상태
   const [users, setUsers] = useState<User[]>([])
   const [reservedLeaves, setReservedLeaves] = useState<LeaveReservation[]>([])
-  const [usedLeaves, setUsedLeaves] = useState<LeaveHistory[]>([])
+  const [usedLeaves, setUsedLeaves] = useState<LeaveReservation[]>([])
 
   // 데이터 로드
   const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [usersResult, reservationsResult, historyResult] =
-        await Promise.all([
-          getAllUsers(),
-          getAllLeaveReservations('RESERVED'),
-          getAllLeaveHistory(),
-        ])
+      const [usersResult, reservationsResult, usedResult] = await Promise.all([
+        getAllUsers(),
+        getAllLeaveReservations('RESERVED'),
+        getAllLeaveReservations('USED'),
+      ])
 
       if (usersResult.success && usersResult.data) {
         setUsers(usersResult.data)
@@ -40,8 +38,8 @@ export default function LeaveApproval() {
         setReservedLeaves(reservationsResult.data)
       }
 
-      if (historyResult.success && historyResult.data) {
-        setUsedLeaves(historyResult.data)
+      if (usedResult.success && usedResult.data) {
+        setUsedLeaves(usedResult.data)
       }
     } catch (err) {
       console.error('데이터 로드 실패:', err)
@@ -77,13 +75,13 @@ export default function LeaveApproval() {
     }
   }
 
-  const handleCancelHistory = async (historyId: number) => {
+  const handleCancelUsedReservation = async (reservationId: number) => {
     setIsCancelling(true)
     setError('')
     setSuccess('')
 
     try {
-      const result = await cancelLeaveHistoryAPI(historyId)
+      const result = await cancelLeaveUsedReservation(reservationId)
 
       if (result.success) {
         setSuccess('사용된 연차가 취소되고 복구되었습니다.')
@@ -228,11 +226,12 @@ export default function LeaveApproval() {
             </Text>
           ) : (
             <Flex direction="column" gap="2">
-              {usedLeaves.map((history) => {
-                const user = users.find((u) => u.user_id === history.user_id)
+              {usedLeaves.map((reservation) => {
+                const user = users.find((u) => u.user_id === reservation.user_id)
+
                 return (
                   <Box
-                    key={history.id}
+                    key={reservation.id}
                     p="3"
                     style={{
                       border: '1px solid var(--gray-a6)',
@@ -249,23 +248,24 @@ export default function LeaveApproval() {
                           <Badge color="green">사용완료</Badge>
                         </Flex>
                         <Text size="2" style={{ color: 'var(--gray-11)' }}>
-                          {history.date} •{' '}
-                          {history.type === 'FULL'
+                          {reservation.date} •{' '}
+                          {reservation.type === 'FULL'
                             ? '종일'
-                            : `반차 (${history.session})`}{' '}
-                          • {history.amount}일
+                            : `반차 (${reservation.session})`}{' '}
+                          • {reservation.amount}일
                         </Text>
                         <Text size="1" style={{ color: 'var(--gray-10)' }}>
                           사용일:{' '}
-                          {new Date(history.used_at).toLocaleDateString(
+                          {new Date(reservation.date).toLocaleDateString(
                             'ko-KR',
                           )}{' '}
-                          • {history.source_year}년 연차에서 차감
                         </Text>
                         <Button
                           color="orange"
                           variant="soft"
-                          onClick={() => handleCancelHistory(history.id)}
+                          onClick={() =>
+                            handleCancelUsedReservation(reservation.id)
+                          }
                           disabled={isCancelling}
                         >
                           <Trash2 size={16} />

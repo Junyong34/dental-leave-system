@@ -603,6 +603,65 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.cancel_leave_by_reservation(p_reservation_id bigint)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_reservation leave_reservations%ROWTYPE;
+  v_item leave_history%ROWTYPE;
+BEGIN
+  IF NOT is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  SELECT *
+  INTO v_reservation
+  FROM leave_reservations
+  WHERE id = p_reservation_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Reservation not found.');
+  END IF;
+
+  IF v_reservation.status <> 'USED' THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Reservation is not used.');
+  END IF;
+
+  -- Revert all matching history entries (same reservation scope)
+  FOR v_item IN
+    SELECT *
+    FROM leave_history
+    WHERE user_id = v_reservation.user_id
+      AND date = v_reservation.date
+      AND type = v_reservation.type
+      AND (session IS NOT DISTINCT FROM v_reservation.session)
+    FOR UPDATE
+  LOOP
+    UPDATE leave_balances
+    SET used = used - v_item.amount,
+        remain = remain + v_item.amount
+    WHERE user_id = v_item.user_id
+      AND year = v_item.source_year;
+  END LOOP;
+
+  DELETE FROM leave_history
+  WHERE user_id = v_reservation.user_id
+    AND date = v_reservation.date
+    AND type = v_reservation.type
+    AND (session IS NOT DISTINCT FROM v_reservation.session);
+
+  UPDATE leave_reservations
+  SET status = 'CANCELLED'
+  WHERE id = p_reservation_id;
+
+  RETURN jsonb_build_object('success', true, 'message', 'Leave usage cancelled.');
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.approve_due_reservations()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -644,6 +703,7 @@ GRANT EXECUTE ON FUNCTION public.reserve_leave(uuid, date, text, text) TO authen
 GRANT EXECUTE ON FUNCTION public.approve_leave(bigint) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_leave(bigint) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_leave_history(bigint) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_leave_by_reservation(bigint) TO authenticated;
 
 -- ================================================================
 -- Cron (KST 00:00:00 => UTC 15:00:00)
