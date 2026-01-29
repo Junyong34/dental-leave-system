@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router'
-import { getUserByIdOptional } from '@/lib/supabase/api/user'
+import useUserProfile from '@/hooks/useUserProfile'
 import { useAuthStore } from '@/store/authStore'
 import type { UserRole } from '@/types/leave'
 import { setFlashNotice } from '@/utils/flashNotice'
@@ -26,11 +26,16 @@ export default function RoleRoute({
   const [denyMessage, setDenyMessage] = useState<string | null>(null)
   const userId = useAuthStore((state) => state.user?.id)
   const loading = useAuthStore((state) => state.loading)
+  const { user, loading: profileLoading, error: profileError } =
+    useUserProfile()
   const noticeSentRef = useRef(false)
   const rolesKey = requiredRoles.join(',')
 
   useEffect(() => {
-    if (loading) return
+    if (loading || profileLoading) {
+      setStatus('loading')
+      return
+    }
 
     if (!userId) {
       setStatus('denied')
@@ -38,44 +43,38 @@ export default function RoleRoute({
       return
     }
 
-    let isMounted = true
-
-    const checkRole = async () => {
-      setStatus('loading')
-      const result = await getUserByIdOptional(userId)
-      if (!isMounted) return
-
-      if (!result.success) {
-        setStatus('denied')
-        setDenyMessage(
-          result.error || '사용자 권한 정보를 불러오지 못했습니다.',
-        )
-        return
-      }
-
-      if (!result.data) {
-        setStatus('denied')
-        setDenyMessage('사용자 정보가 없습니다. 회원 등록이 필요합니다.')
-        return
-      }
-
-      const roles = rolesKey.split(',') as UserRole[]
-      if (!hasRequiredRole(result.data.role, roles)) {
-        setStatus('denied')
-        setDenyMessage(deniedMessage)
-        return
-      }
-
-      setStatus('allowed')
-      setDenyMessage(null)
+    if (profileError) {
+      setStatus('denied')
+      setDenyMessage(
+        profileError || '사용자 권한 정보를 불러오지 못했습니다.',
+      )
+      return
     }
 
-    checkRole()
-
-    return () => {
-      isMounted = false
+    if (!user) {
+      setStatus('denied')
+      setDenyMessage('사용자 정보가 없습니다. 회원 등록이 필요합니다.')
+      return
     }
-  }, [deniedMessage, loading, userId, rolesKey])
+
+    const roles = rolesKey.split(',') as UserRole[]
+    if (!hasRequiredRole(user.role, roles)) {
+      setStatus('denied')
+      setDenyMessage(deniedMessage)
+      return
+    }
+
+    setStatus('allowed')
+    setDenyMessage(null)
+  }, [
+    deniedMessage,
+    loading,
+    profileError,
+    profileLoading,
+    rolesKey,
+    user,
+    userId,
+  ])
 
   useEffect(() => {
     if (status === 'denied' && denyMessage && !noticeSentRef.current) {

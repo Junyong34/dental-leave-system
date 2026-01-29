@@ -6,6 +6,9 @@ import {
   Settings,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router'
+import useUserProfile from '@/hooks/useUserProfile'
+import type { UserRole } from '@/types/leave'
+import { hasRequiredRole } from '@/utils/permissions'
 
 const navLinkStyle = {
   position: 'relative' as const,
@@ -27,95 +30,64 @@ const indicatorStyle = {
   height: '2px',
 }
 
+type NavItem = {
+  to: string
+  label: string
+  icon: typeof LayoutDashboard
+  requiredRoles?: UserRole[]
+}
+
+const navItems: NavItem[] = [
+  { to: '/', label: '대시보드', icon: LayoutDashboard },
+  { to: '/request', label: '연차 신청', icon: FileText },
+  { to: '/approval', label: '연차 승인', icon: CheckCircle, requiredRoles: ['ADMIN'] },
+  { to: '/history', label: '연차 내역', icon: History },
+  { to: '/settings', label: '설정', icon: Settings, requiredRoles: ['ADMIN'] },
+]
+
 export default function Navigation() {
   const location = useLocation()
+  const { user, loading } = useUserProfile()
+  const role = user?.role ?? null
 
   const isActive = (path: string) => {
     return location.pathname === path
   }
 
+  const canAccess = (requiredRoles?: UserRole[]) => {
+    if (!requiredRoles) return true
+    if (loading) return false
+    return hasRequiredRole(role, requiredRoles)
+  }
+
   return (
     <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
-      <Link
-        to="/"
-        style={{
-          ...navLinkStyle,
-          color: isActive('/') ? '#2563eb' : '#4b5563',
-        }}
-      >
-        <LayoutDashboard size={18} />
-        <span>대시보드</span>
-        <div
-          style={{
-            ...indicatorStyle,
-            backgroundColor: isActive('/') ? '#2563eb' : 'transparent',
-          }}
-        />
-      </Link>
-      <Link
-        to="/request"
-        style={{
-          ...navLinkStyle,
-          color: isActive('/request') ? '#2563eb' : '#4b5563',
-        }}
-      >
-        <FileText size={18} />
-        <span>연차 신청</span>
-        <div
-          style={{
-            ...indicatorStyle,
-            backgroundColor: isActive('/request') ? '#2563eb' : 'transparent',
-          }}
-        />
-      </Link>
-      <Link
-        to="/approval"
-        style={{
-          ...navLinkStyle,
-          color: isActive('/approval') ? '#2563eb' : '#4b5563',
-        }}
-      >
-        <CheckCircle size={18} />
-        <span>연차 승인</span>
-        <div
-          style={{
-            ...indicatorStyle,
-            backgroundColor: isActive('/approval') ? '#2563eb' : 'transparent',
-          }}
-        />
-      </Link>
-      <Link
-        to="/history"
-        style={{
-          ...navLinkStyle,
-          color: isActive('/history') ? '#2563eb' : '#4b5563',
-        }}
-      >
-        <History size={18} />
-        <span>연차 내역</span>
-        <div
-          style={{
-            ...indicatorStyle,
-            backgroundColor: isActive('/history') ? '#2563eb' : 'transparent',
-          }}
-        />
-      </Link>
-      <Link
-        to="/settings"
-        style={{
-          ...navLinkStyle,
-          color: isActive('/settings') ? '#2563eb' : '#4b5563',
-        }}
-      >
-        <Settings size={18} />
-        <span>설정</span>
-        <div
-          style={{
-            ...indicatorStyle,
-            backgroundColor: isActive('/settings') ? '#2563eb' : 'transparent',
-          }}
-        />
-      </Link>
+      {navItems
+        .filter((item) => canAccess(item.requiredRoles))
+        .map((item) => {
+          const Icon = item.icon
+          const active = isActive(item.to)
+
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              style={{
+                ...navLinkStyle,
+                color: active ? '#2563eb' : '#4b5563',
+              }}
+            >
+              <Icon size={18} />
+              <span>{item.label}</span>
+              <div
+                style={{
+                  ...indicatorStyle,
+                  backgroundColor: active ? '#2563eb' : 'transparent',
+                }}
+              />
+            </Link>
+          )
+        })}
     </div>
   )
 }
