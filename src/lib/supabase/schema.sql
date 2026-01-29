@@ -194,6 +194,476 @@ RETURNS BOOLEAN AS $$
 $$ LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public;
 
+-- ================================================================
+-- RPC functions
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION public.get_user_leave_status(p_user_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_total numeric := 0;
+  v_used numeric := 0;
+  v_reserved numeric := 0;
+  v_remain numeric := 0;
+  v_balances jsonb := '[]'::jsonb;
+  v_nearest jsonb := null;
+BEGIN
+  -- Access control: admin, view, or owner
+  IF NOT (is_admin() OR is_view() OR auth.uid() = p_user_id) THEN
+    RAISE EXCEPTION 'Not authorized.';
+  END IF;
+
+  SELECT
+    COALESCE(SUM(total), 0) / 10.0,
+    COALESCE(SUM(used), 0) / 10.0,
+    COALESCE(SUM(remain), 0) / 10.0
+  INTO v_total, v_used, v_remain
+  FROM leave_balances
+  WHERE user_id = p_user_id;
+
+  SELECT COALESCE(SUM(amount), 0) / 10.0
+  INTO v_reserved
+  FROM leave_reservations
+  WHERE user_id = p_user_id
+    AND status = 'RESERVED';
+
+  SELECT COALESCE(
+    jsonb_agg(
+      jsonb_build_object(
+        'user_id', user_id,
+        'year', year,
+        'total', total / 10.0,
+        'used', used / 10.0,
+        'remain', remain / 10.0,
+        'expire_at', expire_at
+      ) ORDER BY year DESC
+    ),
+    '[]'::jsonb
+  )
+  INTO v_balances
+  FROM leave_balances
+  WHERE user_id = p_user_id;
+
+  SELECT jsonb_build_object(
+    'year', year,
+    'amount', remain / 10.0,
+    'expire_at', expire_at
+  )
+  INTO v_nearest
+  FROM leave_balances
+  WHERE user_id = p_user_id
+    AND remain > 0
+  ORDER BY expire_at ASC
+  LIMIT 1;
+
+  RETURN jsonb_build_object(
+    'user_id', p_user_id,
+    'total', v_total,
+    'used', v_used,
+    'reserved', v_reserved,
+    'remain', v_remain,
+    'balances', v_balances,
+    'nearest_expiry', v_nearest
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.reserve_leave(
+  p_user_id uuid,
+  p_date date,
+  p_type text,
+  p_session text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_amount integer;
+  v_remaining integer;
+  v_reservation_id bigint;
+  v_result jsonb;
+BEGIN
+  -- Access control: admin or owner
+  IF NOT (is_admin() OR auth.uid() = p_user_id) THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  IF p_type NOT IN ('FULL', 'HALF') THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Invalid leave type.');
+  END IF;
+
+  IF p_type = 'HALF' AND (p_session IS NULL OR p_session NOT IN ('AM', 'PM')) THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Half-day requires AM or PM.');
+  END IF;
+
+  IF p_type = 'FULL' THEN
+    p_session := NULL;
+  END IF;
+
+  -- Sunday check
+  IF EXTRACT(DOW FROM p_date) = 0 THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Sundays are not allowed.');
+  END IF;
+
+  v_amount := CASE WHEN p_type = 'FULL' THEN 10 ELSE 5 END;
+
+  SELECT COALESCE(SUM(remain), 0)
+  INTO v_remaining
+  FROM leave_balances
+  WHERE user_id = p_user_id;
+
+  IF v_remaining < v_amount THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Insufficient remaining leave.');
+  END IF;
+
+  -- Duplicate checks
+  IF EXISTS (
+    SELECT 1 FROM leave_reservations
+    WHERE user_id = p_user_id
+      AND date = p_date
+      AND status IN ('RESERVED', 'USED')
+      AND type = 'FULL'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Full-day leave already exists.');
+  END IF;
+
+  IF p_type = 'FULL' AND EXISTS (
+    SELECT 1 FROM leave_reservations
+    WHERE user_id = p_user_id
+      AND date = p_date
+      AND status IN ('RESERVED', 'USED')
+      AND type = 'HALF'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Half-day leave already exists.');
+  END IF;
+
+  IF p_type = 'HALF' AND EXISTS (
+    SELECT 1 FROM leave_reservations
+    WHERE user_id = p_user_id
+      AND date = p_date
+      AND status IN ('RESERVED', 'USED')
+      AND type = 'HALF'
+      AND session = p_session
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Same session already reserved.');
+  END IF;
+
+  INSERT INTO leave_reservations (
+    user_id,
+    date,
+    type,
+    session,
+    amount,
+    status
+  )
+  VALUES (
+    p_user_id,
+    p_date,
+    p_type,
+    p_session,
+    v_amount,
+    'RESERVED'
+  )
+  RETURNING id INTO v_reservation_id;
+
+  IF p_date <= current_date THEN
+    v_result := public._approve_reservation(v_reservation_id);
+    IF COALESCE((v_result->>'success')::boolean, false) THEN
+      RETURN v_result || jsonb_build_object('reservation_id', v_reservation_id);
+    END IF;
+    RETURN v_result;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Leave reserved.',
+    'reservation_id', v_reservation_id
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._approve_reservation(p_reservation_id bigint)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_reservation leave_reservations%ROWTYPE;
+  v_remaining integer;
+  v_deduct integer;
+  v_weekday text;
+  v_balance leave_balances%ROWTYPE;
+BEGIN
+  SELECT *
+  INTO v_reservation
+  FROM leave_reservations
+  WHERE id = p_reservation_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Reservation not found.');
+  END IF;
+
+  IF v_reservation.status <> 'RESERVED' THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Reservation is not pending.');
+  END IF;
+
+  -- Lock balances for this user
+  PERFORM 1 FROM leave_balances WHERE user_id = v_reservation.user_id FOR UPDATE;
+
+  SELECT COALESCE(SUM(remain), 0)
+  INTO v_remaining
+  FROM leave_balances
+  WHERE user_id = v_reservation.user_id;
+
+  IF v_remaining < v_reservation.amount THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Insufficient remaining leave.');
+  END IF;
+
+  v_weekday := CASE EXTRACT(DOW FROM v_reservation.date)
+    WHEN 0 THEN 'SUN'
+    WHEN 1 THEN 'MON'
+    WHEN 2 THEN 'TUE'
+    WHEN 3 THEN 'WED'
+    WHEN 4 THEN 'THU'
+    WHEN 5 THEN 'FRI'
+    WHEN 6 THEN 'SAT'
+  END;
+
+  v_remaining := v_reservation.amount;
+
+  FOR v_balance IN
+    SELECT *
+    FROM leave_balances
+    WHERE user_id = v_reservation.user_id
+      AND remain > 0
+    ORDER BY expire_at ASC
+    FOR UPDATE
+  LOOP
+    EXIT WHEN v_remaining <= 0;
+
+    v_deduct := LEAST(v_balance.remain, v_remaining);
+
+    UPDATE leave_balances
+    SET used = used + v_deduct,
+        remain = remain - v_deduct
+    WHERE user_id = v_balance.user_id
+      AND year = v_balance.year;
+
+    INSERT INTO leave_history (
+      user_id,
+      date,
+      type,
+      session,
+      amount,
+      weekday,
+      source_year,
+      used_at
+    )
+    VALUES (
+      v_reservation.user_id,
+      v_reservation.date,
+      v_reservation.type,
+      v_reservation.session,
+      v_deduct,
+      v_weekday,
+      v_balance.year,
+      NOW()
+    );
+
+    v_remaining := v_remaining - v_deduct;
+  END LOOP;
+
+  IF v_remaining > 0 THEN
+    RAISE EXCEPTION 'Insufficient remaining leave.';
+  END IF;
+
+  UPDATE leave_reservations
+  SET status = 'USED'
+  WHERE id = p_reservation_id;
+
+  RETURN jsonb_build_object('success', true, 'message', 'Leave approved.');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.approve_leave(p_reservation_id bigint)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  RETURN public._approve_reservation(p_reservation_id);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.cancel_leave(p_reservation_id bigint)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_reservation leave_reservations%ROWTYPE;
+BEGIN
+  -- Admin or owner can cancel
+  SELECT *
+  INTO v_reservation
+  FROM leave_reservations
+  WHERE id = p_reservation_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Reservation not found.');
+  END IF;
+
+  IF NOT (is_admin() OR auth.uid() = v_reservation.user_id) THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  IF v_reservation.status <> 'RESERVED' THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Reservation is not pending.');
+  END IF;
+
+  UPDATE leave_reservations
+  SET status = 'CANCELLED'
+  WHERE id = p_reservation_id;
+
+  RETURN jsonb_build_object('success', true, 'message', 'Reservation cancelled.');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.cancel_leave_history(p_history_id bigint)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_history leave_history%ROWTYPE;
+  v_item leave_history%ROWTYPE;
+BEGIN
+  IF NOT is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  SELECT *
+  INTO v_history
+  FROM leave_history
+  WHERE id = p_history_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'History not found.');
+  END IF;
+
+  -- Revert all matching history entries (same reservation scope)
+  FOR v_item IN
+    SELECT *
+    FROM leave_history
+    WHERE user_id = v_history.user_id
+      AND date = v_history.date
+      AND type = v_history.type
+      AND (session IS NOT DISTINCT FROM v_history.session)
+    FOR UPDATE
+  LOOP
+    UPDATE leave_balances
+    SET used = used - v_item.amount,
+        remain = remain + v_item.amount
+    WHERE user_id = v_item.user_id
+      AND year = v_item.source_year;
+  END LOOP;
+
+  DELETE FROM leave_history
+  WHERE user_id = v_history.user_id
+    AND date = v_history.date
+    AND type = v_history.type
+    AND (session IS NOT DISTINCT FROM v_history.session);
+
+  UPDATE leave_reservations
+  SET status = 'CANCELLED'
+  WHERE user_id = v_history.user_id
+    AND date = v_history.date
+    AND type = v_history.type
+    AND (session IS NOT DISTINCT FROM v_history.session)
+    AND status = 'USED';
+
+  RETURN jsonb_build_object('success', true, 'message', 'Leave usage cancelled.');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.approve_due_reservations()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_row record;
+  v_result jsonb;
+  v_approved integer := 0;
+  v_failed integer := 0;
+BEGIN
+  FOR v_row IN
+    SELECT id
+    FROM leave_reservations
+    WHERE status = 'RESERVED'
+      AND date <= current_date
+    ORDER BY date, id
+    FOR UPDATE SKIP LOCKED
+  LOOP
+    v_result := public._approve_reservation(v_row.id);
+    IF COALESCE((v_result->>'success')::boolean, false) THEN
+      v_approved := v_approved + 1;
+    ELSE
+      v_failed := v_failed + 1;
+    END IF;
+  END LOOP;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'approved', v_approved,
+    'failed', v_failed
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_user_leave_status(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_leave(uuid, date, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.approve_leave(bigint) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_leave(bigint) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_leave_history(bigint) TO authenticated;
+
+-- ================================================================
+-- Cron (KST 00:00:00 => UTC 15:00:00)
+-- ================================================================
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM cron.job WHERE jobname = 'approve-due-leaves'
+  ) THEN
+    PERFORM cron.schedule(
+      'approve-due-leaves',
+      '0 15 * * *',
+      $$select public.approve_due_reservations();$$
+    );
+  END IF;
+END
+$$;
+
 -- RLS 활성화
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_balances ENABLE ROW LEVEL SECURITY;

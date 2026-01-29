@@ -1,25 +1,46 @@
 import { useState } from 'react'
 import { useLoaderData } from 'react-router'
+import {
+  getLeaveBalances,
+  getLeaveHistory,
+  getLeaveReservations,
+} from '@/lib/supabase/api/leave.ts'
+import { getAllUsers } from '@/lib/supabase/api/user.ts'
+import type { LeaveHistory } from '@/types/leave.ts'
+import { getLeaveStatus } from '@/utils/leave.ts'
 import { LeaveHistoryModal } from '../../components/dashboard/LeaveHistoryModal'
-import { sampleData } from '../../data/sampleData'
-import type { LeaveStatus, User } from '../../types/leave'
-import { getLeaveStatus } from '../../utils/leave'
-
-interface UserLeaveData {
-  user: User
-  leaveStatus: LeaveStatus
-}
 
 export async function loader() {
-  // 샘플 데이터에서 3명의 사용자 연차 통계 조회
-  const usersData: UserLeaveData[] = sampleData.users.map((user) => ({
-    user,
-    leaveStatus: getLeaveStatus(
-      user.user_id,
-      sampleData.balances,
-      sampleData.reservations,
-    ),
-  }))
+  // Supabase에서 모든 활성 사용자 조회
+  const usersResult = await getAllUsers('ACTIVE')
+
+  if (!usersResult.success || !usersResult.data) {
+    throw new Error(
+      usersResult.error || '사용자 목록을 불러오는데 실패했습니다.',
+    )
+  }
+
+  // 각 사용자별 연차 정보 조회
+  const usersDataPromises = usersResult.data.map(async (user) => {
+    const [balancesResult, reservationsResult] = await Promise.all([
+      getLeaveBalances(user.user_id),
+      getLeaveReservations(user.user_id, 'RESERVED'),
+    ])
+
+    const balances =
+      balancesResult.success && balancesResult.data ? balancesResult.data : []
+    const reservations =
+      reservationsResult.success && reservationsResult.data
+        ? reservationsResult.data
+        : []
+
+    return {
+      user,
+      leaveStatus: getLeaveStatus(user.user_id, balances, reservations),
+    }
+  })
+
+  const usersData = await Promise.all(usersDataPromises)
 
   return { usersData }
 }
@@ -27,13 +48,32 @@ export async function loader() {
 export default function Dashboard() {
   const { usersData } = useLoaderData<typeof loader>()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-
-  // 선택된 사용자의 연차 사용 이력 조회
-  const selectedUserHistory = selectedUserId
-    ? sampleData.history.filter((h) => h.user_id === selectedUserId)
-    : []
+  const [selectedUserHistory, setSelectedUserHistory] = useState<
+    LeaveHistory[]
+  >([])
 
   const selectedUser = usersData.find((u) => u.user.user_id === selectedUserId)
+
+  // 선택된 사용자의 연차 사용 이력 조회
+  const loadUserHistory = async (userId: string) => {
+    try {
+      const result = await getLeaveHistory(userId)
+      if (result.success && result.data) {
+        setSelectedUserHistory(result.data)
+      } else {
+        setSelectedUserHistory([])
+      }
+    } catch (error) {
+      console.error('히스토리 조회 실패:', error)
+      setSelectedUserHistory([])
+    } finally {
+    }
+  }
+
+  const handleOpenHistory = (userId: string) => {
+    setSelectedUserId(userId)
+    loadUserHistory(userId)
+  }
 
   return (
     <div className="rt-r-p-6" style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -296,7 +336,7 @@ export default function Dashboard() {
               {/* 히스토리 버튼 */}
               <button
                 type="button"
-                onClick={() => setSelectedUserId(user.user_id)}
+                onClick={() => handleOpenHistory(user.user_id)}
                 className="rt-r-mt-3"
                 style={{
                   width: '100%',

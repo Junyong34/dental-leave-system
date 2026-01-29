@@ -24,43 +24,6 @@ export interface ApiResponse<T = unknown> {
 }
 
 /**
- * 연차 현황 조회
- *
- * @param userId - 사용자 ID
- * @returns 사용자의 전체 연차 현황
- *
- * @example
- * ```ts
- * const result = await getUserLeaveStatus('user123')
- * if (result.success && result.data) {
- *   console.log('잔여 연차:', result.data.remain)
- * }
- * ```
- */
-export async function getUserLeaveStatus(
-  userId: string,
-): Promise<ApiResponse<LeaveStatus>> {
-  try {
-    // RPC 함수 호출 (실제 DB에 함수가 있을 경우)
-    const { data, error } = await supabase.rpc('get_user_leave_status', {
-      p_user_id: userId,
-    })
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data: data as unknown as LeaveStatus }
-  } catch (err) {
-    return {
-      success: false,
-      error:
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
-    }
-  }
-}
-
-/**
  * 연차 잔액 조회 (연도별)
  *
  * @param userId - 사용자 ID
@@ -297,46 +260,6 @@ export async function reserveLeave(
 }
 
 /**
- * 연차 승인 (RPC 함수 호출)
- *
- * @param reservationId - 예약 ID
- * @returns 승인 결과
- *
- * @example
- * ```ts
- * const result = await approveLeave(123)
- * if (result.success) {
- *   console.log('연차 승인 완료')
- * }
- * ```
- */
-export async function approveLeave(
-  reservationId: number,
-): Promise<ApiResponse<{ message?: string }>> {
-  try {
-    const { data, error } = await supabase.rpc('approve_leave', {
-      p_reservation_id: reservationId,
-    })
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return {
-      success: data?.success || false,
-      data: data || undefined,
-      error: data?.success ? undefined : data?.message,
-    }
-  } catch (err) {
-    return {
-      success: false,
-      error:
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
-    }
-  }
-}
-
-/**
  * 연차 취소 (RPC 함수 호출)
  *
  * @param reservationId - 예약 ID
@@ -377,33 +300,77 @@ export async function cancelLeave(
 }
 
 /**
- * 특정 날짜의 예약 조회 (그룹 제한 확인용)
+ * 사용된 연차를 취소하고 복구 (RPC 함수 호출)
  *
- * @param date - 날짜 (YYYY-MM-DD)
- * @param groupId - 그룹 ID (선택)
- * @returns 해당 날짜의 예약 목록
+ * @param historyId - 히스토리 ID
+ * @returns 취소 및 복구 결과
  *
  * @example
  * ```ts
- * const result = await getReservationsByDate('2024-12-25', 'group1')
- * if (result.success && result.data) {
- *   console.log('해당 날짜 예약 건수:', result.data.length)
+ * const result = await cancelLeaveHistory(123)
+ * if (result.success) {
+ *   console.log('연차 취소 및 복구 완료')
  * }
  * ```
  */
-export async function getReservationsByDate(
-  date: string,
-  groupId?: string,
-): Promise<ApiResponse<LeaveReservation[]>> {
+export async function cancelLeaveHistory(
+  historyId: number,
+): Promise<ApiResponse<{ message?: string }>> {
   try {
-    const query = supabase
-      .from('leave_reservations_display')
-      .select('*')
-      .eq('date', date)
-      .eq('status', 'RESERVED')
+    const { data, error } = await supabase.rpc('cancel_leave_history', {
+      p_history_id: historyId,
+    })
 
-    // groupId로 필터링 (users 테이블 조인 필요 시)
-    // 실제 구현은 RLS 정책이나 뷰를 통해 처리하는 것이 좋습니다
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return {
+      success: data?.success || false,
+      data: data || undefined,
+      error: data?.success ? undefined : data?.message,
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+    }
+  }
+}
+
+/**
+ * 모든 사용자의 연차 히스토리 조회 (관리자용)
+ *
+ * @param startDate - 시작일 (선택)
+ * @param endDate - 종료일 (선택)
+ * @returns 전체 사용 이력 목록
+ *
+ * @example
+ * ```ts
+ * const result = await getAllLeaveHistory()
+ * if (result.success && result.data) {
+ *   console.log('전체 사용 이력:', result.data.length)
+ * }
+ * ```
+ */
+export async function getAllLeaveHistory(
+  startDate?: string,
+  endDate?: string,
+): Promise<ApiResponse<LeaveHistory[]>> {
+  try {
+    let query = supabase
+      .from('leave_history_display')
+      .select('*')
+      .order('date', { ascending: false })
+
+    if (startDate) {
+      query = query.gte('date', startDate)
+    }
+
+    if (endDate) {
+      query = query.lte('date', endDate)
+    }
 
     const { data, error } = await query
 
@@ -411,7 +378,7 @@ export async function getReservationsByDate(
       return { success: false, error: error.message }
     }
 
-    return { success: true, data: (data || []) as LeaveReservation[] }
+    return { success: true, data: (data || []) as LeaveHistory[] }
   } catch (err) {
     return {
       success: false,

@@ -1,53 +1,101 @@
 import { Badge, Box, Button, Card, Flex, Text } from '@radix-ui/themes'
 import { Trash2, X } from 'lucide-react'
-import { useState } from 'react'
-import { sampleData } from '@/data/sampleData.ts'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  cancelLeaveHistory,
-  cancelLeaveReservation,
-} from '@/utils/leaveManagement.ts'
+  cancelLeave,
+  cancelLeaveHistory as cancelLeaveHistoryAPI,
+  getAllLeaveHistory,
+  getAllLeaveReservations,
+} from '@/lib/supabase/api/leave'
+import { getAllUsers } from '@/lib/supabase/api/user'
+import type { LeaveHistory, LeaveReservation, User } from '@/types/leave'
 
 export default function LeaveApproval() {
   const [success, setSuccess] = useState<string>('')
   const [error, setError] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCancelling, setIsCancelling] = useState(false)
 
-  // RESERVED 상태의 예약만 필터링
-  const reservedLeaves = sampleData.reservations.filter(
-    (r) => r.status === 'RESERVED',
-  )
+  // 데이터 상태
+  const [users, setUsers] = useState<User[]>([])
+  const [reservedLeaves, setReservedLeaves] = useState<LeaveReservation[]>([])
+  const [usedLeaves, setUsedLeaves] = useState<LeaveHistory[]>([])
 
-  // 사용 완료된 연차 (취소 가능)
-  const usedLeaves = sampleData.history
-
-  const handleCancel = (reservationId: number) => {
+  // 데이터 로드
+  const loadData = useCallback(async () => {
+    setIsLoading(true)
     try {
-      const updatedReservations = cancelLeaveReservation(
-        sampleData.reservations,
-        reservationId,
-      )
-      sampleData.reservations = updatedReservations
-      setSuccess('연차 예약이 취소되었습니다.')
-      setError('')
+      const [usersResult, reservationsResult, historyResult] =
+        await Promise.all([
+          getAllUsers(),
+          getAllLeaveReservations('RESERVED'),
+          getAllLeaveHistory(),
+        ])
+
+      if (usersResult.success && usersResult.data) {
+        setUsers(usersResult.data)
+      }
+
+      if (reservationsResult.success && reservationsResult.data) {
+        setReservedLeaves(reservationsResult.data)
+      }
+
+      if (historyResult.success && historyResult.data) {
+        setUsedLeaves(historyResult.data)
+      }
+    } catch (err) {
+      console.error('데이터 로드 실패:', err)
+      setError('데이터를 불러오는데 실패했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  const handleCancel = async (reservationId: number) => {
+    setIsCancelling(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const result = await cancelLeave(reservationId)
+
+      if (result.success) {
+        setSuccess('연차 예약이 취소되었습니다.')
+        // 데이터 다시 로드
+        await loadData()
+      } else {
+        setError(result.error || '취소에 실패했습니다.')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '취소에 실패했습니다.')
-      setSuccess('')
+    } finally {
+      setIsCancelling(false)
     }
   }
 
-  const handleCancelHistory = (historyId: number) => {
+  const handleCancelHistory = async (historyId: number) => {
+    setIsCancelling(true)
+    setError('')
+    setSuccess('')
+
     try {
-      const result = cancelLeaveHistory(
-        sampleData.balances,
-        sampleData.history,
-        historyId,
-      )
-      sampleData.balances = result.balances
-      sampleData.history = result.history
-      setSuccess('사용된 연차가 취소되고 복구되었습니다.')
-      setError('')
+      const result = await cancelLeaveHistoryAPI(historyId)
+
+      if (result.success) {
+        setSuccess('사용된 연차가 취소되고 복구되었습니다.')
+        // 데이터 다시 로드
+        await loadData()
+      } else {
+        setError(result.error || '취소에 실패했습니다.')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '취소에 실패했습니다.')
-      setSuccess('')
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -98,14 +146,18 @@ export default function LeaveApproval() {
             예약된 연차
           </Text>
 
-          {reservedLeaves.length === 0 ? (
+          {isLoading ? (
+            <Text size="2" style={{ color: 'var(--gray-11)' }}>
+              데이터를 불러오는 중...
+            </Text>
+          ) : reservedLeaves.length === 0 ? (
             <Text size="2" style={{ color: 'var(--gray-11)' }}>
               예약된 연차가 없습니다.
             </Text>
           ) : (
             <Flex direction="column" gap="2">
               {reservedLeaves.map((reservation) => {
-                const user = sampleData.users.find(
+                const user = users.find(
                   (u) => u.user_id === reservation.user_id,
                 )
                 return (
@@ -145,9 +197,10 @@ export default function LeaveApproval() {
                         color="red"
                         variant="soft"
                         onClick={() => handleCancel(reservation.id)}
+                        disabled={isCancelling}
                       >
                         <X size={16} />
-                        취소
+                        {isCancelling ? '처리 중...' : '취소'}
                       </Button>
                     </Flex>
                   </Box>
@@ -165,16 +218,18 @@ export default function LeaveApproval() {
             사용 완료된 연차
           </Text>
 
-          {usedLeaves.length === 0 ? (
+          {isLoading ? (
+            <Text size="2" style={{ color: 'var(--gray-11)' }}>
+              데이터를 불러오는 중...
+            </Text>
+          ) : usedLeaves.length === 0 ? (
             <Text size="2" style={{ color: 'var(--gray-11)' }}>
               사용 완료된 연차가 없습니다.
             </Text>
           ) : (
             <Flex direction="column" gap="2">
               {usedLeaves.map((history) => {
-                const user = sampleData.users.find(
-                  (u) => u.user_id === history.user_id,
-                )
+                const user = users.find((u) => u.user_id === history.user_id)
                 return (
                   <Box
                     key={history.id}
@@ -211,9 +266,10 @@ export default function LeaveApproval() {
                           color="orange"
                           variant="soft"
                           onClick={() => handleCancelHistory(history.id)}
+                          disabled={isCancelling}
                         >
                           <Trash2 size={16} />
-                          취소 및 복구
+                          {isCancelling ? '처리 중...' : '취소 및 복구'}
                         </Button>
                       </Flex>
                     </Flex>

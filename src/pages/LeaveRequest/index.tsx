@@ -7,13 +7,21 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes'
-import { isPast, parseISO, startOfToday } from 'date-fns'
 import { AlertCircle, Calendar } from 'lucide-react'
-import { useState } from 'react'
-import { sampleData } from '@/data/sampleData.ts'
-import type { LeaveSession, LeaveType } from '@/types/leave.ts'
+import { useEffect, useState } from 'react'
+import {
+  getLeaveBalances,
+  getLeaveReservations,
+  reserveLeave,
+} from '@/lib/supabase/api/leave'
+import { getAllUsers } from '@/lib/supabase/api/user'
+import type {
+  LeaveSession,
+  LeaveStatus,
+  LeaveType,
+  User,
+} from '@/types/leave.ts'
 import { getLeaveStatus, validateLeaveRequest } from '@/utils/leave.ts'
-import { addLeaveReservation } from '@/utils/leaveManagement.ts'
 
 export default function LeaveRequest() {
   const [selectedUserId, setSelectedUserId] = useState<string>('')
@@ -22,21 +30,70 @@ export default function LeaveRequest() {
   const [session, setSession] = useState<LeaveSession>(null)
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const activeUsers = sampleData.users.filter((u) => u.status === 'ACTIVE')
+  // 사용자 목록 및 연차 정보
+  const [activeUsers, setActiveUsers] = useState<User[]>([])
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [leaveStatus, setLeaveStatus] = useState<LeaveStatus | null>(null)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
 
-  const selectedUser = sampleData.users.find(
-    (u) => u.user_id === selectedUserId,
-  )
-  const leaveStatus = selectedUserId
-    ? getLeaveStatus(
-        selectedUserId,
-        sampleData.balances,
-        sampleData.reservations,
-      )
-    : null
+  // 사용자 목록 조회
+  useEffect(() => {
+    const loadUsers = async () => {
+      setIsLoadingUsers(true)
+      try {
+        const result = await getAllUsers('ACTIVE')
+        if (result.success && result.data) {
+          setActiveUsers(result.data)
+        }
+      } catch (err) {
+        console.error('사용자 목록 조회 실패:', err)
+      } finally {
+        setIsLoadingUsers(false)
+      }
+    }
+    loadUsers()
+  }, [])
 
-  const handleSubmit = () => {
+  // 선택된 사용자의 연차 정보 조회
+  useEffect(() => {
+    if (!selectedUserId) {
+      setSelectedUser(null)
+      setLeaveStatus(null)
+      return
+    }
+
+    const loadUserLeaveInfo = async () => {
+      try {
+        const user = activeUsers.find((u) => u.user_id === selectedUserId)
+        if (!user) return
+
+        const [balancesResult, reservationsResult] = await Promise.all([
+          getLeaveBalances(selectedUserId),
+          getLeaveReservations(selectedUserId, 'RESERVED'),
+        ])
+
+        const balances =
+          balancesResult.success && balancesResult.data
+            ? balancesResult.data
+            : []
+        const reservations =
+          reservationsResult.success && reservationsResult.data
+            ? reservationsResult.data
+            : []
+
+        setSelectedUser(user)
+        setLeaveStatus(getLeaveStatus(selectedUserId, balances, reservations))
+      } catch (err) {
+        console.error('연차 정보 조회 실패:', err)
+      }
+    }
+
+    loadUserLeaveInfo()
+  }, [selectedUserId, activeUsers])
+
+  const handleSubmit = async () => {
     setError('')
     setSuccess('')
 
@@ -45,16 +102,27 @@ export default function LeaveRequest() {
       return
     }
 
-    // 유효성 검증
-    const userReservations = sampleData.reservations.filter(
-      (r) => r.user_id === selectedUserId,
+    // 유효성 검증 (로컬)
+    if (!leaveStatus) {
+      setError('연차 정보를 불러오는 중입니다.')
+      return
+    }
+
+    // 기본 유효성 검증 (클라이언트 측)
+    const reservationsResult = await getLeaveReservations(
+      selectedUserId,
+      'RESERVED',
     )
+    const userReservations =
+      reservationsResult.success && reservationsResult.data
+        ? reservationsResult.data
+        : []
 
     const validation = validateLeaveRequest(
       selectedDate,
       leaveType,
       session,
-      leaveStatus?.remain || 0,
+      leaveStatus.remain,
       userReservations,
     )
 
@@ -63,43 +131,50 @@ export default function LeaveRequest() {
       return
     }
 
-    // 과거/미래 날짜 판별
-    const requestDate = parseISO(selectedDate)
-    const today = startOfToday()
-    const isPastDate = isPast(requestDate) && requestDate < today
-
-    // 연차 추가
+    // 연차 신청
+    setIsSubmitting(true)
     try {
-      const result = addLeaveReservation(
-        sampleData.balances,
-        sampleData.reservations,
-        sampleData.history,
+      const result = await reserveLeave(
         selectedUserId,
         selectedDate,
         leaveType,
         session,
-        isPastDate, // 과거 날짜면 즉시 사용(true), 미래면 예약(false)
       )
 
-      // 데이터 업데이트 (실제로는 상태 관리 필요)
-      if (isPastDate) {
-        sampleData.balances = result.balances
-        sampleData.history = result.history
+      if (result.success) {
+        const actionText = '신청'
+        setSuccess(
+          `${selectedUser?.name}님의 연차가 ${actionText}되었습니다. (${selectedDate}, ${leaveType === 'FULL' ? '종일' : `반차 ${session}`})`,
+        )
+
+        // 폼 초기화
+        setSelectedDate('')
+        setLeaveType('FULL')
+        setSession(null)
+
+        // 연차 정보 다시 로드
+        const [balancesResult, reservationsResult] = await Promise.all([
+          getLeaveBalances(selectedUserId),
+          getLeaveReservations(selectedUserId, 'RESERVED'),
+        ])
+
+        const balances =
+          balancesResult.success && balancesResult.data
+            ? balancesResult.data
+            : []
+        const reservations =
+          reservationsResult.success && reservationsResult.data
+            ? reservationsResult.data
+            : []
+
+        setLeaveStatus(getLeaveStatus(selectedUserId, balances, reservations))
       } else {
-        sampleData.reservations = result.reservations
+        setError(result.error || '연차 신청에 실패했습니다.')
       }
-
-      const actionText = isPastDate ? '사용 처리' : '예약'
-      setSuccess(
-        `${selectedUser?.name}님의 연차가 ${actionText}되었습니다. (${selectedDate}, ${leaveType === 'FULL' ? '종일' : `반차 ${session}`})`,
-      )
-
-      // 폼 초기화
-      setSelectedDate('')
-      setLeaveType('FULL')
-      setSession(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : '연차 신청에 실패했습니다.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -141,7 +216,7 @@ export default function LeaveRequest() {
               >
                 {activeUsers.map((user) => (
                   <Select.Item key={user.user_id} value={user.user_id}>
-                    {user.name} ({user.user_id})
+                    {user.name}
                   </Select.Item>
                 ))}
               </Select.Content>
@@ -310,8 +385,12 @@ export default function LeaveRequest() {
           )}
 
           {/* 신청 버튼 */}
-          <Button size="3" onClick={handleSubmit}>
-            연차 신청
+          <Button
+            size="3"
+            onClick={handleSubmit}
+            disabled={isSubmitting || isLoadingUsers}
+          >
+            {isSubmitting ? '신청 중...' : '연차 신청'}
           </Button>
         </Flex>
       </Card>

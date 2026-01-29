@@ -7,11 +7,10 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes'
-import { AlertCircle, Database, Hospital, LogIn } from 'lucide-react'
+import { AlertCircle, Hospital, LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { getSession } from '@/lib/supabase/api/auth'
-import { seedAll } from '@/lib/supabase/seed'
 import {
   consumeFlashNotice,
   type FlashNotice,
@@ -25,7 +24,6 @@ export default function Login() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<FlashNotice | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSeeding, setIsSeeding] = useState(false)
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
 
@@ -62,24 +60,6 @@ export default function Login() {
       }
     } finally {
       setIsSubmitting(false)
-    }
-  }
-
-  const handleSeedData = async () => {
-    setError('')
-    setNotice(null)
-    setIsSeeding(true)
-    try {
-      await seedAll()
-      setNotice({
-        message: '샘플 데이터가 성공적으로 삽입되었습니다.',
-        tone: 'green',
-      })
-    } catch (err) {
-      setError('샘플 데이터 삽입에 실패했습니다. 콘솔을 확인해주세요.')
-      console.error(err)
-    } finally {
-      setIsSeeding(false)
     }
   }
 
@@ -173,18 +153,6 @@ export default function Login() {
               >
                 <LogIn size={16} />
                 {isSubmitting ? '로그인 중...' : '로그인'}
-              </Button>
-
-              <Button
-                type="button"
-                size="3"
-                variant="outline"
-                className="cursor-pointer"
-                disabled={isSeeding}
-                onClick={handleSeedData}
-              >
-                <Database size={16} />
-                {isSeeding ? '데이터 삽입 중...' : '샘플 데이터 삽입'}
               </Button>
 
               <Box className="bg-gray-50 rounded-lg p-3 border border-gray-200">

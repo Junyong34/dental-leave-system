@@ -1,96 +1,19 @@
-import {
-	differenceInYears,
-	getDay,
-	isSunday as dateFnsIsSunday,
-	parseISO,
-	startOfToday,
-} from "date-fns";
+import { isSunday as dateFnsIsSunday, parseISO } from "date-fns";
 import type {
 	LeaveBalance,
-	LeaveDeductionResult,
 	LeaveReservation,
 	LeaveSession,
 	LeaveStatus,
 	LeaveType,
 	LeaveValidationResult,
-	Weekday,
 } from "../types/leave";
-
-/**
- * 근속연수를 기반으로 연차 일수를 계산합니다.
- * 기본 연차: 15일
- * 근속 2년 초과 시마다 +1일
- * 최대 연차: 25일
- *
- * 계산식: min(15 + floor((근속연수 - 1) / 2), 25)
- */
-export function calculateAnnualLeave(yearsOfService: number): number {
-	if (yearsOfService < 1) {
-		return 0;
-	}
-
-	const baseLeave = 15;
-	const additionalLeave = Math.floor((yearsOfService - 1) / 2);
-	const totalLeave = baseLeave + additionalLeave;
-
-	return Math.min(totalLeave, 25);
-}
-
-/**
- * 입사일을 기준으로 근속연수를 계산합니다.
- */
-export function calculateYearsOfService(
-	joinDate: Date,
-	baseDate: Date = startOfToday(),
-): number {
-	return differenceInYears(baseDate, joinDate);
-}
-
-/**
- * 연차 잔액을 계산합니다.
- * 총 연차 - 사용 완료 - 사용 예정
- */
-export function calculateLeaveBalance(
-	totalLeave: number,
-	usedLeave: number,
-	reservedLeave: number,
-): number {
-	const balance = totalLeave - usedLeave - reservedLeave;
-
-	return Math.max(balance, 0);
-}
-
-/**
- * 반차 사용 가능 여부를 확인합니다.
- * 최소 0.5일 이상 잔여 연차가 있어야 합니다.
- */
-export function canUseHalfDayLeave(remainingLeave: number): boolean {
-	return remainingLeave >= 0.5;
-}
-
-/**
- * 연차 사용 가능 여부를 확인합니다.
- * 최소 1.0일 이상 잔여 연차가 있어야 합니다.
- */
-export function canUseFullDayLeave(remainingLeave: number): boolean {
-	return remainingLeave >= 1.0;
-}
 
 /**
  * 요일이 일요일인지 확인합니다.
  * 일요일은 연차 사용이 불가능합니다.
  */
-export function isSunday(date: Date): boolean {
+function isSunday(date: Date): boolean {
 	return dateFnsIsSunday(date);
-}
-
-/**
- * Date 객체를 Weekday 타입으로 변환합니다.
- */
-export function getWeekday(date: Date): Weekday {
-	const dayIndex = getDay(date);
-	const weekdays: Weekday[] = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-	return weekdays[dayIndex];
 }
 
 /**
@@ -139,53 +62,6 @@ export function getLeaveStatus(
 		remain: remainLeave,
 		balances: userBalances,
 		nearest_expiry: nearestExpiry,
-	};
-}
-
-/**
- * FIFO 방식으로 연차를 차감합니다.
- * 만료일이 가까운 연차부터 차감합니다.
- */
-export function deductLeaveByFIFO(
-	balances: LeaveBalance[],
-	amount: number,
-): LeaveDeductionResult {
-	// 만료일 기준 오름차순 정렬 (오래된 것부터)
-	const sortedBalances = [...balances]
-		.filter((b) => b.remain > 0)
-		.sort((a, b) => a.expire_at.localeCompare(b.expire_at));
-
-	let remainingAmount = amount;
-	const deductions: Array<{ year: number; amount: number }> = [];
-	const updatedBalances = balances.map((b) => ({ ...b }));
-
-	for (const balance of sortedBalances) {
-		if (remainingAmount <= 0) break;
-
-		const deductAmount = Math.min(balance.remain, remainingAmount);
-
-		// 차감 기록
-		deductions.push({
-			year: balance.year,
-			amount: deductAmount,
-		});
-
-		// 잔액 업데이트
-		const targetBalance = updatedBalances.find(
-			(b) => b.user_id === balance.user_id && b.year === balance.year,
-		);
-		if (targetBalance) {
-			targetBalance.used += deductAmount;
-			targetBalance.remain -= deductAmount;
-		}
-
-		remainingAmount -= deductAmount;
-	}
-
-	return {
-		success: remainingAmount === 0,
-		deductions,
-		remainingBalances: updatedBalances,
 	};
 }
 
@@ -276,11 +152,4 @@ export function validateLeaveRequest(
 	}
 
 	return { valid: true };
-}
-
-/**
- * 잔여 연차를 계산합니다 (모든 연도 합계)
- */
-export function calculateRemainingLeave(balances: LeaveBalance[]): number {
-	return balances.reduce((sum, b) => sum + b.remain, 0);
 }
