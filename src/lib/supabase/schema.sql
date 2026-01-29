@@ -788,6 +788,36 @@ CREATE POLICY "leave_history_delete" ON leave_history
 
 
 -- ================================================================
+-- 트리거: 신규 사용자 연차 초기화
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION initialize_leave_balance_for_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_year INTEGER := EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER;
+BEGIN
+  INSERT INTO leave_balances (user_id, year, total, used, remain, expire_at)
+  VALUES (
+    NEW.user_id,
+    v_year,
+    0,
+    0,
+    0,
+    make_date(v_year, 12, 31)
+  )
+  ON CONFLICT (user_id, year) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER initialize_leave_balance_after_user_insert
+  AFTER INSERT ON users
+  FOR EACH ROW
+  EXECUTE FUNCTION initialize_leave_balance_for_new_user();
+
+
+-- ================================================================
 -- 트리거: updated_at 자동 갱신
 -- ================================================================
 

@@ -69,6 +69,83 @@ export async function getLeaveBalances(
 }
 
 /**
+ * 연차 총량 수정 (총 연차만 변경, 잔여 연차 자동 계산)
+ *
+ * @param userId - 사용자 ID
+ * @param year - 연도
+ * @param total - 변경할 총 연차 (0.5 단위)
+ * @returns 수정 결과
+ */
+export async function updateLeaveBalance(
+  userId: string,
+  year: number,
+  total: number,
+): Promise<ApiResponse<LeaveBalance>> {
+  try {
+    const totalValue = Number(total)
+    if (Number.isNaN(totalValue) || totalValue < 0) {
+      return { success: false, error: '총 연차 값이 올바르지 않습니다.' }
+    }
+
+    const totalInt = Math.round(totalValue * 10)
+
+    const { data: current, error: fetchError } = await supabase
+      .from('leave_balances')
+      .select('used')
+      .eq('user_id', userId)
+      .eq('year', year)
+      .single()
+
+    if (fetchError) {
+      return { success: false, error: fetchError.message }
+    }
+
+    const usedInt = current?.used ?? 0
+    const remainInt = totalInt - usedInt
+
+    if (remainInt < 0) {
+      return {
+        success: false,
+        error: '총 연차가 사용 연차보다 적을 수 없습니다.',
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('leave_balances')
+      .update({ total: totalInt, remain: remainInt })
+      .eq('user_id', userId)
+      .eq('year', year)
+      .select('*')
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    if (!data) {
+      return { success: false, error: '수정된 데이터가 없습니다.' }
+    }
+
+    const normalized: LeaveBalance = {
+      user_id: data.user_id,
+      year: data.year,
+      total: data.total / 10,
+      used: data.used / 10,
+      remain: data.remain / 10,
+      expire_at: data.expire_at,
+    }
+
+    return { success: true, data: normalized }
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+    }
+  }
+}
+
+/**
  * 연차 예약 목록 조회
  *
  * @param userId - 사용자 ID
