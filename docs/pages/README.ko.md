@@ -10,6 +10,7 @@
 - `/request` -> LeaveRequest
 - `/approval` -> LeaveApproval
 - `/history` -> LeaveHistory (placeholder)
+- `/calendar` -> LeaveCalendar ✅
 - `/settings` -> Settings (placeholder)
 
 ## 라우트: `/` (Dashboard)
@@ -100,6 +101,36 @@
 - UI:
   - 로그인 폼 + 에러/알림 Callout
   - 로그인/시딩 로딩 상태
+
+## 라우트: `/calendar` (LeaveCalendar) ✅
+
+- 목적: fullCalendar를 사용한 연차 시각화 및 관리
+- 상태: 구현 완료, Supabase 연동 완료
+- 핵심 기능:
+  - 월간/주간 뷰 전환 (dayGridMonth, timeGridWeek)
+  - 사용자별 색상 구분 (HSL 해시 기반)
+  - 사용자/상태/연도 필터링
+  - 이벤트 클릭 → 상세 정보 Dialog
+  - 날짜 클릭 → 연차 신청 Dialog
+  - 반응형 디자인 (PC/모바일 최적화)
+- 컴포넌트 구조:
+  - `LeaveCalendar/index.tsx` - 메인 캘린더
+  - `LeaveCalendarFilters.tsx` - 필터 UI
+  - `LeaveEventDialog.tsx` - 이벤트 상세 Dialog
+  - `LeaveRequestDialog.tsx` - 연차 신청 Dialog
+  - `styles.css` - Radix 테마 통합 스타일
+- API 사용:
+  - `getAllLeaveHistory(startDate, endDate)` - 사용 완료 이벤트
+  - `getAllLeaveReservations('RESERVED')` - 사용 예정 이벤트
+  - `getAllUsers('ACTIVE')` - 사용자 목록
+- 데이터 흐름:
+  - 연도/상태 필터 변경 → API 재조회
+  - 사용자 필터는 클라이언트 측 필터링
+  - 이벤트 변환: `LeaveHistory/Reservation` → `CalendarEvent`
+- UI/반응형:
+  - PC: 전체 정보 표시 (사용자명 + 종일/반차)
+  - 모바일: 축약 표시 (사용자명 첫 글자)
+  - 터치/클릭 이벤트로 상세 정보 접근
 
 ## 라우트: `/settings` (Settings)
 

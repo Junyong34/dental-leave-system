@@ -5,6 +5,7 @@ import RoleRoute from '../components/auth/RoleRoute'
 import Layout from '../components/layout/Layout'
 import Dashboard, { loader as dashboardLoader } from '../pages/Dashboard'
 import LeaveApproval from '../pages/LeaveApproval'
+import LeaveCalendar from '../pages/LeaveCalendar'
 import LeaveHistory from '../pages/LeaveHistory'
 import LeaveRequest from '../pages/LeaveRequest'
 import Login from '../pages/Login'
@@ -40,9 +41,18 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Dashboard />,
+            element: (
+              <RoleRoute requiredRoles={['ADMIN']}>
+                <Dashboard />
+              </RoleRoute>
+            ),
             loader: dashboardLoader,
           },
+          {
+            path: 'calendar',
+            element: <LeaveCalendar />,
+          },
+
           {
             path: 'request',
             element: <LeaveRequest />,
