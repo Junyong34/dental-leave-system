@@ -1,6 +1,6 @@
-import { Box, Flex, Select, Text, Checkbox } from '@radix-ui/themes'
-import type { User } from '@/types/leave'
+import { Box, Checkbox, Flex, Select, Text } from '@radix-ui/themes'
 import { useState } from 'react'
+import type { User } from '@/types/leave'
 
 interface LeaveCalendarFiltersProps {
   allUsers: User[]
@@ -106,7 +106,6 @@ export function LeaveCalendarFilters({
           {/* 상태 필터 */}
           <Box>
             <Text
-              as="label"
               size="2"
               weight="medium"
               style={{ display: 'block', marginBottom: '8px' }}
@@ -114,26 +113,30 @@ export function LeaveCalendarFilters({
               상태
             </Text>
             <Flex gap="3">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Flex align="center" gap="2" style={{ cursor: 'pointer' }}>
                 <Checkbox
                   checked={selectedStatuses.includes('RESERVED')}
                   onCheckedChange={() => toggleStatus('RESERVED')}
                 />
                 <Text size="2">사용 예정</Text>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              </Flex>
+              <Flex align="center" gap="2" style={{ cursor: 'pointer' }}>
                 <Checkbox
                   checked={selectedStatuses.includes('USED')}
                   onCheckedChange={() => toggleStatus('USED')}
                 />
                 <Text size="2">사용 완료</Text>
-              </label>
+              </Flex>
             </Flex>
           </Box>
 
           {/* 사용자 필터 */}
           <Box style={{ flex: 1, minWidth: '200px' }}>
-            <Flex justify="between" align="center" style={{ marginBottom: '8px' }}>
+            <Flex
+              justify="between"
+              align="center"
+              style={{ marginBottom: '8px' }}
+            >
               <Text as="label" size="2" weight="medium">
                 사용자 필터
               </Text>
@@ -154,7 +157,10 @@ export function LeaveCalendarFilters({
             </Flex>
 
             {selectedUserIds.length > 0 && (
-              <Text size="1" style={{ color: 'var(--gray-11)', marginBottom: '8px' }}>
+              <Text
+                size="1"
+                style={{ color: 'var(--gray-11)', marginBottom: '8px' }}
+              >
                 {selectedUserIds.length}명 선택됨
               </Text>
             )}
@@ -172,6 +178,7 @@ export function LeaveCalendarFilters({
               >
                 <Flex direction="column" gap="2">
                   <label
+                    htmlFor={'total'}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -181,6 +188,7 @@ export function LeaveCalendarFilters({
                     }}
                   >
                     <Checkbox
+                      id={'total'}
                       checked={
                         selectedUserIds.length === allUsers.length &&
                         allUsers.length > 0
@@ -194,6 +202,7 @@ export function LeaveCalendarFilters({
 
                   {allUsers.map((user) => (
                     <label
+                      htmlFor={user.user_id}
                       key={user.user_id}
                       style={{
                         display: 'flex',
@@ -204,6 +213,7 @@ export function LeaveCalendarFilters({
                       }}
                     >
                       <Checkbox
+                        id={user.user_id}
                         checked={selectedUserIds.includes(user.user_id)}
                         onCheckedChange={() => toggleUser(user.user_id)}
                       />
