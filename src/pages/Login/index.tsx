@@ -4,10 +4,11 @@ import {
   Callout,
   Card,
   Flex,
+  IconButton,
   Text,
   TextField,
 } from '@radix-ui/themes'
-import { AlertCircle, Hospital, LogIn } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff, Hospital, LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { getSession } from '@/lib/supabase/api/auth'
@@ -21,6 +22,7 @@ import { useAuthStore } from '../../store/authStore'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<FlashNotice | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -122,12 +124,24 @@ export default function Login() {
                 </Text>
                 <TextField.Root
                   size="3"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="비밀번호를 입력하세요"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                />
+                >
+                  <TextField.Slot side="right">
+                    <IconButton
+                      type="button"
+                      variant="ghost"
+                      color="gray"
+                      aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </IconButton>
+                  </TextField.Slot>
+                </TextField.Root>
               </Box>
 
               {error && (

@@ -4,7 +4,7 @@
 >
 > **상세 구현**은 [AGENT.md](../../AGENT.md)를, **개발 가이드**는 [CLAUDE.md](../../CLAUDE.md)를 참조하세요.
 
-**최종 업데이트**: 2025-02-02
+**최종 업데이트**: 2026-02-02
 
 ## Quick Links
 
@@ -19,6 +19,7 @@
 | 경로 | 페이지 | 목적 | 권한 | 상세 문서 |
 |------|--------|------|------|----------|
 | `/login` | Login | 이메일/비밀번호 인증 | 공개 | - |
+| `/reset-password` | ResetPassword | 비밀번호 재설정 | 공개 | - |
 | `/register` | UserRegistration | 사용자 등록 | 인증 필요 | - |
 | `/` | Dashboard | 팀원 연차 현황 대시보드 | ADMIN | [AGENT.md - Dashboard](../../AGENT.md#dashboard) |
 | `/calendar` | LeaveCalendar | FullCalendar 기반 연차 시각화 | 인증 필요 | [LeaveCalendar-PRD.md](./LeaveCalendar-PRD.md) |
@@ -64,6 +65,12 @@
 Supabase Email/Password 인증. React Hook Form 유효성 검사. AuthProvider로 세션 자동 복원.
 
 **API**: `useAuthStore.login()`, `getSession()`
+
+### `/reset-password` - ResetPassword
+
+비밀번호 재설정 링크로 진입한 사용자의 비밀번호 변경 화면. 세션 유효성 확인 후 비밀번호를 업데이트하고 로그인 화면으로 이동.
+
+**API**: `updatePassword()`, `getSession()`, `getCurrentUser()`
 
 ### `/calendar` - LeaveCalendar
 

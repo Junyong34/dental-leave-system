@@ -10,6 +10,7 @@ import LeaveHistory from '@/pages/LeaveHistory'
 import LeaveRequest from '@/pages/LeaveRequest'
 import Login from '@/pages/Login'
 import NightShiftStatsPage from '@/pages/NightShiftStats'
+import ResetPassword from '@/pages/ResetPassword'
 import Settings from '@/pages/Settings'
 import GeneralSettings from '@/pages/Settings/GeneralSettings'
 import NightShiftManagement from '@/pages/Settings/NightShift'
@@ -22,6 +23,10 @@ const publicRoutes: RouteObject[] = [
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPassword />,
   },
   {
     path: '/register',
