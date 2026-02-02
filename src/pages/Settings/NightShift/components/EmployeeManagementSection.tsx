@@ -21,6 +21,7 @@ interface EmployeeManagementSectionProps {
   onError: (message: string) => void
   onReload: () => void
   onAddClick: () => void
+  onAddMultipleClick: () => void
 }
 
 export function EmployeeManagementSection({
@@ -29,6 +30,7 @@ export function EmployeeManagementSection({
   onError,
   onReload,
   onAddClick,
+  onAddMultipleClick,
 }: EmployeeManagementSectionProps) {
   const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null)
 
@@ -70,10 +72,15 @@ export function EmployeeManagementSection({
       <Flex direction="column" gap="3">
         <Flex justify="between" align="center">
           <Heading size="4">직원 관리</Heading>
-          <Button onClick={onAddClick}>
-            <Plus size={16} />
-            직원 추가
-          </Button>
+          <Flex gap="2">
+            <Button variant="soft" onClick={onAddMultipleClick}>
+              여러 명 추가
+            </Button>
+            <Button onClick={onAddClick}>
+              <Plus size={16} />
+              직원 추가
+            </Button>
+          </Flex>
         </Flex>
 
         <Text size="2" color="gray">
@@ -83,7 +90,13 @@ export function EmployeeManagementSection({
         {employees.length === 0 ? (
           <Text color="gray">등록된 직원이 없습니다.</Text>
         ) : (
-          <Box>
+          <Box
+            style={{
+              maxHeight: '420px',
+              minHeight: '240px',
+              overflowY: 'auto',
+            }}
+          >
             <Table.Root>
               <Table.Header>
                 <Table.Row>

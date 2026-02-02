@@ -80,7 +80,11 @@ export async function getEmployeeById(
 
     if (error) throw error
 
-    return { success: true, data: data as Employee, message: 'Employee fetched.' }
+    return {
+      success: true,
+      data: data as Employee,
+      message: 'Employee fetched.',
+    }
   } catch (error) {
     return {
       success: false,
@@ -117,7 +121,48 @@ export async function createEmployee(
 
     if (error) throw error
 
-    return { success: true, data: data as Employee, message: 'Employee created.' }
+    return {
+      success: true,
+      data: data as Employee,
+      message: 'Employee created.',
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
+ * 여러 직원 생성
+ *
+ * @param names - 직원 이름 목록
+ * @param status - 직원 상태 (기본값: ACTIVE)
+ * @returns 생성된 직원 목록
+ */
+export async function createEmployees(
+  names: string[],
+  status: EmployeeStatus = 'ACTIVE',
+): Promise<ApiResponse & { data?: Employee[] }> {
+  try {
+    if (names.length === 0) {
+      return { success: false, message: 'No employee names provided.' }
+    }
+
+    const payload = names.map((name) => ({ name, status }))
+    const { data, error } = await supabase
+      .from('employees')
+      .insert(payload)
+      .select()
+
+    if (error) throw error
+
+    return {
+      success: true,
+      data: (data as Employee[]) || [],
+      message: 'Employees created.',
+    }
   } catch (error) {
     return {
       success: false,
@@ -147,7 +192,11 @@ export async function updateEmployee(
 
     if (error) throw error
 
-    return { success: true, data: data as Employee, message: 'Employee updated.' }
+    return {
+      success: true,
+      data: data as Employee,
+      message: 'Employee updated.',
+    }
   } catch (error) {
     return {
       success: false,
@@ -390,7 +439,7 @@ export async function createNightShiftRecord(
 
     if (error) throw error
 
-    return data as ApiResponse
+    return data as unknown as ApiResponse
   } catch (error) {
     return {
       success: false,
@@ -486,7 +535,7 @@ export async function getNightShiftStats(
     const { data, error } = await supabase.rpc('get_night_shift_stats', {
       p_employee_id: employeeId,
       p_year: year,
-      p_month: month || null,
+      p_month: month,
     })
 
     if (error) throw error
@@ -530,7 +579,7 @@ export async function getAllEmployeesNightShiftStats(
       'get_all_employees_night_shift_stats',
       {
         p_year: year,
-        p_month: month || null,
+        p_month: month,
       },
     )
 

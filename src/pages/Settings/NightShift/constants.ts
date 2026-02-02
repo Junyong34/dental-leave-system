@@ -10,6 +10,13 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   SUN: '일요일',
 }
 
-export const WEEKDAY_ORDER: Weekday[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+export const WEEKDAY_ORDER: Weekday[] = [
+  'MON',
+  'TUE',
+  'WED',
+  'THU',
+  'FRI',
+  'SAT',
+]
 
 export const MAX_RECENT_RECORDS = 20

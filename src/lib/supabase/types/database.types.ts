@@ -16,86 +16,30 @@ export type Database = {
     Tables: {
       employees: {
         Row: {
+          created_at: string | null
           id: number
           name: string
-          user_id: string | null
           status: string
-          created_at: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
+          created_at?: string | null
           id?: number
           name: string
-          user_id?: string | null
           status?: string
-          created_at?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
+          created_at?: string | null
           id?: number
           name?: string
-          user_id?: string | null
           status?: string
-          created_at?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
-      }
-      night_shift_config: {
-        Row: {
-          id: number
-          weekday: string
-          is_active: boolean
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: number
-          weekday: string
-          is_active?: boolean
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: number
-          weekday?: string
-          is_active?: boolean
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      night_shift_records: {
-        Row: {
-          id: number
-          employee_id: number
-          work_date: string
-          weekday: string
-          created_at: string | null
-        }
-        Insert: {
-          id?: number
-          employee_id: number
-          work_date: string
-          weekday: string
-          created_at?: string | null
-        }
-        Update: {
-          id?: number
-          employee_id?: number
-          work_date?: string
-          weekday?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'night_shift_records_employee_id_fkey'
-            columns: ['employee_id']
-            isOneToOne: false
-            referencedRelation: 'employees'
-            referencedColumns: ['id']
-          },
-        ]
       }
       leave_balances: {
         Row: {
@@ -148,6 +92,7 @@ export type Database = {
           source_year: number
           type: string
           used_at: string | null
+          used_by_name: string | null
           user_id: string
           weekday: string
         }
@@ -160,6 +105,7 @@ export type Database = {
           source_year: number
           type: string
           used_at?: string | null
+          used_by_name?: string | null
           user_id: string
           weekday: string
         }
@@ -172,6 +118,7 @@ export type Database = {
           source_year?: number
           type?: string
           used_at?: string | null
+          used_by_name?: string | null
           user_id?: string
           weekday?: string
         }
@@ -189,34 +136,40 @@ export type Database = {
         Row: {
           amount: number
           created_at: string | null
+          created_by_name: string | null
           date: string
           id: number
           session: string | null
           status: string
           type: string
           updated_at: string | null
+          updated_by_name: string | null
           user_id: string
         }
         Insert: {
           amount: number
           created_at?: string | null
+          created_by_name?: string | null
           date: string
           id?: number
           session?: string | null
           status?: string
           type: string
           updated_at?: string | null
+          updated_by_name?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           created_at?: string | null
+          created_by_name?: string | null
           date?: string
           id?: number
           session?: string | null
           status?: string
           type?: string
           updated_at?: string | null
+          updated_by_name?: string | null
           user_id?: string
         }
         Relationships: [
@@ -226,6 +179,71 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'users'
             referencedColumns: ['user_id']
+          },
+        ]
+      }
+      night_shift_config: {
+        Row: {
+          created_at: string | null
+          id: number
+          is_active: boolean
+          updated_at: string | null
+          weekday: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          is_active?: boolean
+          updated_at?: string | null
+          weekday: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          is_active?: boolean
+          updated_at?: string | null
+          weekday?: string
+        }
+        Relationships: []
+      }
+      night_shift_records: {
+        Row: {
+          created_at: string | null
+          created_by_name: string | null
+          employee_id: number
+          id: number
+          updated_at: string | null
+          updated_by_name: string | null
+          weekday: string
+          work_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_name?: string | null
+          employee_id: number
+          id?: number
+          updated_at?: string | null
+          updated_by_name?: string | null
+          weekday: string
+          work_date: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_name?: string | null
+          employee_id?: number
+          id?: number
+          updated_at?: string | null
+          updated_by_name?: string | null
+          weekday?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'night_shift_records_employee_id_fkey'
+            columns: ['employee_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -275,26 +293,6 @@ export type Database = {
           user_id: string | null
           year: number | null
         }
-        Insert: {
-          created_at?: string | null
-          expire_at?: string | null
-          remain?: never
-          total?: never
-          updated_at?: string | null
-          used?: never
-          user_id?: string | null
-          year?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          expire_at?: string | null
-          remain?: never
-          total?: never
-          updated_at?: string | null
-          used?: never
-          user_id?: string | null
-          year?: number | null
-        }
         Relationships: [
           {
             foreignKeyName: 'leave_balances_user_id_fkey'
@@ -315,32 +313,9 @@ export type Database = {
           source_year: number | null
           type: string | null
           used_at: string | null
+          used_by_name: string | null
           user_id: string | null
           weekday: string | null
-        }
-        Insert: {
-          amount?: never
-          created_at?: string | null
-          date?: string | null
-          id?: number | null
-          session?: string | null
-          source_year?: number | null
-          type?: string | null
-          used_at?: string | null
-          user_id?: string | null
-          weekday?: string | null
-        }
-        Update: {
-          amount?: never
-          created_at?: string | null
-          date?: string | null
-          id?: number | null
-          session?: string | null
-          source_year?: number | null
-          type?: string | null
-          used_at?: string | null
-          user_id?: string | null
-          weekday?: string | null
         }
         Relationships: [
           {
@@ -356,35 +331,15 @@ export type Database = {
         Row: {
           amount: number | null
           created_at: string | null
+          created_by_name: string | null
           date: string | null
           id: number | null
           session: string | null
           status: string | null
           type: string | null
           updated_at: string | null
+          updated_by_name: string | null
           user_id: string | null
-        }
-        Insert: {
-          amount?: never
-          created_at?: string | null
-          date?: string | null
-          id?: number | null
-          session?: string | null
-          status?: string | null
-          type?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: never
-          created_at?: string | null
-          date?: string | null
-          id?: number | null
-          session?: string | null
-          status?: string | null
-          type?: string | null
-          updated_at?: string | null
-          user_id?: string | null
         }
         Relationships: [
           {
@@ -398,78 +353,48 @@ export type Database = {
       }
     }
     Functions: {
-      cancel_leave: {
-        Args: {
-          p_reservation_id: number
-        }
-        Returns: {
-          success: boolean
-          message: string
-        }
+      _approve_reservation: {
+        Args: { p_reservation_id: number }
+        Returns: Json
       }
+      approve_due_reservations: { Args: never; Returns: Json }
+      approve_leave: { Args: { p_reservation_id: number }; Returns: Json }
+      cancel_leave: { Args: { p_reservation_id: number }; Returns: Json }
       cancel_leave_by_reservation: {
-        Args: {
-          p_reservation_id: number
-        }
-        Returns: {
-          success: boolean
-          message: string
-        }
+        Args: { p_reservation_id: number }
+        Returns: Json
       }
-      cancel_leave_history: {
-        Args: {
-          p_history_id: number
-        }
-        Returns: {
-          success: boolean
-          message: string
-        }
+      cancel_leave_history: { Args: { p_history_id: number }; Returns: Json }
+      create_night_shift_record: {
+        Args: { p_employee_id: number; p_work_date: string }
+        Returns: Json
       }
+      get_actor_name: { Args: never; Returns: string }
+      get_all_employees_night_shift_stats: {
+        Args: { p_month?: number; p_year: number }
+        Returns: {
+          employee_id: number
+          employee_name: string
+          stats: Json
+          user_id: string
+        }[]
+      }
+      get_night_shift_stats: {
+        Args: { p_employee_id: number; p_month?: number; p_year: number }
+        Returns: Json
+      }
+      get_user_leave_status: { Args: { p_user_id: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_user: { Args: never; Returns: boolean }
       is_view: { Args: never; Returns: boolean }
       reserve_leave: {
         Args: {
-          p_user_id: string
           p_date: string
+          p_session: string
           p_type: string
-          p_session: string | null
-        }
-        Returns: {
-          success: boolean
-          message: string
-          reservation_id?: number
-        }
-      }
-      get_night_shift_stats: {
-        Args: {
-          p_employee_id: number
-          p_year: number
-          p_month?: number | null
+          p_user_id: string
         }
         Returns: Json
-      }
-      get_all_employees_night_shift_stats: {
-        Args: {
-          p_year: number
-          p_month?: number | null
-        }
-        Returns: {
-          employee_id: number
-          employee_name: string
-          user_id: string | null
-          stats: Json
-        }[]
-      }
-      create_night_shift_record: {
-        Args: {
-          p_employee_id: number
-          p_work_date: string
-        }
-        Returns: {
-          success: boolean
-          message: string
-        }
       }
     }
     Enums: {

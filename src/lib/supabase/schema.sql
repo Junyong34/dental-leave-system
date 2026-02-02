@@ -88,7 +88,9 @@ CREATE TABLE IF NOT EXISTS leave_reservations (
   session TEXT CHECK (session IN ('AM', 'PM') OR session IS NULL),
   amount INTEGER NOT NULL CHECK (amount IN (5, 10)),  -- 0.5일 = 5, 1일 = 10
   status TEXT NOT NULL DEFAULT 'RESERVED' CHECK (status IN ('RESERVED', 'USED', 'CANCELLED')),
+  created_by_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by_name TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- 제약조건: HALF 타입이면 session 필수
@@ -113,6 +115,10 @@ COMMENT ON COLUMN leave_reservations.type IS '연차 타입 (FULL: 종일, HALF:
 COMMENT ON COLUMN leave_reservations.session IS '반차 세션 (AM: 오전, PM: 오후)';
 COMMENT ON COLUMN leave_reservations.amount IS '차감 연차량 (10배수: 0.5일 = 5, 1일 = 10)';
 COMMENT ON COLUMN leave_reservations.status IS '예약 상태 (RESERVED: 예약됨, USED: 사용완료, CANCELLED: 취소됨)';
+COMMENT ON COLUMN leave_reservations.created_by_name IS '신청/등록 처리자 이름 (users.name)';
+COMMENT ON COLUMN leave_reservations.created_at IS '신청 생성 시간';
+COMMENT ON COLUMN leave_reservations.updated_by_name IS '마지막 수정자 이름 (users.name)';
+COMMENT ON COLUMN leave_reservations.updated_at IS '마지막 상태 변경 시간';
 
 
 -- ================================================================
@@ -129,6 +135,7 @@ CREATE TABLE IF NOT EXISTS leave_history (
   amount INTEGER NOT NULL CHECK (amount IN (5, 10)),  -- 0.5일 = 5, 1일 = 10
   weekday TEXT NOT NULL CHECK (weekday IN ('MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')),
   source_year INTEGER NOT NULL,  -- FIFO: 차감된 연차의 발생 연도
+  used_by_name TEXT,
   used_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -144,7 +151,9 @@ CREATE INDEX idx_leave_history_user_date ON leave_history(user_id, date DESC);
 COMMENT ON TABLE leave_history IS '연차 사용 이력';
 COMMENT ON COLUMN leave_history.weekday IS '사용한 요일 (통계 분석용)';
 COMMENT ON COLUMN leave_history.source_year IS '차감된 연차의 발생 연도 (FIFO 원칙)';
+COMMENT ON COLUMN leave_history.used_by_name IS '실제 사용 처리자 이름 (users.name)';
 COMMENT ON COLUMN leave_history.used_at IS '실제 사용 처리된 시간';
+COMMENT ON COLUMN leave_history.created_at IS '이력 레코드 생성 시간';
 
 
 -- ================================================================
@@ -830,6 +839,54 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ================================================================
+-- 트리거: 생성/수정 사용자 기록
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION get_actor_name()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT name FROM users WHERE user_id = auth.uid();
+$$;
+
+CREATE OR REPLACE FUNCTION set_created_by_name_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.created_by_name IS NULL THEN
+    NEW.created_by_name := public.get_actor_name();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public;
+
+CREATE OR REPLACE FUNCTION set_updated_by_name_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_by_name := public.get_actor_name();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public;
+
+CREATE OR REPLACE FUNCTION set_used_by_name_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.used_by_name IS NULL THEN
+    NEW.used_by_name := public.get_actor_name();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public;
+
 CREATE TRIGGER update_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW
@@ -844,6 +901,31 @@ CREATE TRIGGER update_leave_reservations_updated_at
   BEFORE UPDATE ON leave_reservations
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER set_leave_reservations_created_by
+  BEFORE INSERT ON leave_reservations
+  FOR EACH ROW
+  EXECUTE FUNCTION set_created_by_name_column();
+
+CREATE TRIGGER set_leave_reservations_updated_by
+  BEFORE UPDATE ON leave_reservations
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_by_name_column();
+
+CREATE TRIGGER set_leave_history_used_by
+  BEFORE INSERT ON leave_history
+  FOR EACH ROW
+  EXECUTE FUNCTION set_used_by_name_column();
+
+CREATE TRIGGER set_night_shift_records_created_by
+  BEFORE INSERT ON night_shift_records
+  FOR EACH ROW
+  EXECUTE FUNCTION set_created_by_name_column();
+
+CREATE TRIGGER set_night_shift_records_updated_by
+  BEFORE UPDATE ON night_shift_records
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_by_name_column();
 
 
 -- ================================================================
@@ -874,7 +956,9 @@ SELECT
   lr.session,
   lr.amount / 10.0 AS amount,
   lr.status,
+  lr.created_by_name,
   lr.created_at,
+  lr.updated_by_name,
   lr.updated_at
 FROM leave_reservations lr
 JOIN users u ON u.user_id = lr.user_id
@@ -890,6 +974,7 @@ SELECT
   lh.amount / 10.0 AS amount,
   lh.weekday,
   lh.source_year,
+  lh.used_by_name,
   lh.used_at,
   lh.created_at
 FROM leave_history lh
@@ -965,7 +1050,10 @@ CREATE TABLE IF NOT EXISTS night_shift_records (
   employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   work_date DATE NOT NULL,
   weekday TEXT NOT NULL CHECK (weekday IN ('MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')),
+  created_by_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by_name TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(employee_id, work_date)
 );
 
@@ -980,6 +1068,10 @@ COMMENT ON TABLE night_shift_records IS '직원별 야간 근무 기록';
 COMMENT ON COLUMN night_shift_records.employee_id IS '직원 ID (employees.id 참조)';
 COMMENT ON COLUMN night_shift_records.work_date IS '야간 근무 날짜';
 COMMENT ON COLUMN night_shift_records.weekday IS '요일 (통계 분석용)';
+COMMENT ON COLUMN night_shift_records.created_by_name IS '등록 처리자 이름 (users.name)';
+COMMENT ON COLUMN night_shift_records.created_at IS '등록 시간';
+COMMENT ON COLUMN night_shift_records.updated_by_name IS '마지막 수정자 이름 (users.name)';
+COMMENT ON COLUMN night_shift_records.updated_at IS '마지막 수정 시간';
 
 
 -- ================================================================
@@ -1179,5 +1271,10 @@ CREATE TRIGGER update_employees_updated_at
 
 CREATE TRIGGER update_night_shift_config_updated_at
   BEFORE UPDATE ON night_shift_config
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_night_shift_records_updated_at
+  BEFORE UPDATE ON night_shift_records
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();

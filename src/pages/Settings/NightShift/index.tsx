@@ -1,6 +1,7 @@
 import { Card, Flex, Text } from '@radix-ui/themes'
 import { useState } from 'react'
 import { AddEmployeeDialog } from './components/AddEmployeeDialog'
+import { AddEmployeesDialog } from './components/AddEmployeesDialog'
 import { EmployeeManagementSection } from './components/EmployeeManagementSection'
 import { NightShiftRecordsSection } from './components/NightShiftRecordsSection'
 import { NotificationCallout } from './components/NotificationCallout'
@@ -12,6 +13,7 @@ export default function NightShiftManagementPage() {
   const { employees, config, records, loading, loadData } = useNightShiftData()
   const { success, error, setSuccess, setError } = useNotification()
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false)
+  const [isAddEmployeesOpen, setIsAddEmployeesOpen] = useState(false)
 
   return (
     <div className="rt-r-p-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -45,6 +47,7 @@ export default function NightShiftManagementPage() {
               onError={setError}
               onReload={loadData}
               onAddClick={() => setIsAddEmployeeOpen(true)}
+              onAddMultipleClick={() => setIsAddEmployeesOpen(true)}
             />
 
             <NightShiftRecordsSection
@@ -61,6 +64,13 @@ export default function NightShiftManagementPage() {
       <AddEmployeeDialog
         open={isAddEmployeeOpen}
         onOpenChange={setIsAddEmployeeOpen}
+        onSuccess={setSuccess}
+        onError={setError}
+        onReload={loadData}
+      />
+      <AddEmployeesDialog
+        open={isAddEmployeesOpen}
+        onOpenChange={setIsAddEmployeesOpen}
         onSuccess={setSuccess}
         onError={setError}
         onReload={loadData}
