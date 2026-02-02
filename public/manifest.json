@@ -1,0 +1,23 @@
+{
+  "short_name": "연차관리 시스템",
+  "name": "더와이즈",
+  "id": "wise",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./monitor-cog.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    },
+    {
+      "src": "./monitor-cog.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
+}
