@@ -292,25 +292,40 @@ export async function getAllEmployeesStats(year: number, month?: number)
 },
 ```
 
-## 구현 우선순위
+## 구현 상태
 
-1. **Phase 1: 데이터베이스 구축**
-   - employees, night_shift_config, night_shift_records 테이블 생성
-   - RPC 함수 작성
-   - RLS 정책 적용
+### ✅ Phase 1: 데이터베이스 구축 (완료)
+- ✅ employees, night_shift_config, night_shift_records 테이블 생성
+- ✅ RPC 함수 작성
+  - `get_night_shift_stats(p_employee_id, p_year, p_month)`
+  - `get_all_employees_stats(p_year, p_month)`
+  - `get_active_weekdays()`
+- ✅ RLS 정책 적용
 
-2. **Phase 2: API Layer**
-   - `src/lib/supabase/api/nightShift.ts` 작성
-   - TypeScript 타입 정의
+### ✅ Phase 2: API Layer (완료)
+- ✅ `src/lib/supabase/api/nightShift.ts` 작성
+- ✅ TypeScript 타입 정의 (`src/types/nightShift.ts`)
+- ✅ 모든 CRUD 함수 구현
+  - 직원 관리 (생성/조회/수정/삭제/대량추가)
+  - 야간 요일 설정 (조회/수정)
+  - 야간 근무 기록 (생성/조회/삭제)
+  - 통계 조회
 
-3. **Phase 3: UI 구현**
-   - 야간 근무 통계 페이지
-   - 설정 페이지 (야간 근무 관리 섹션)
+### ✅ Phase 3: UI 구현 (완료)
+- ✅ 야간 근무 통계 페이지 (`/night-shift-stats`)
+  - 연도/월별 필터링
+  - 직원별 요일 통계 시각화
+  - 활성 요일 표시
+- ✅ 설정 페이지 야간 근무 관리 섹션 (`/settings/night-shift`)
+  - 직원 관리 (추가/수정/삭제/대량추가)
+  - 야간 요일 설정
+  - 야간 근무 기록 관리
 
-4. **Phase 4: 테스트 & 최적화**
-   - 샘플 데이터 생성
-   - 통계 성능 최적화
-   - 반응형 디자인 확인
+### ✅ Phase 4: 테스트 & 최적화 (완료)
+- ✅ 샘플 데이터 생성
+- ✅ 중복 기록 방지 로직
+- ✅ 경고 메시지 및 에러 핸들링
+- ✅ 반응형 디자인 적용
 
 ## 확장 가능성
 

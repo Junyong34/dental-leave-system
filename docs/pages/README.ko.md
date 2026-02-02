@@ -1,59 +1,69 @@
 # Pages 문서 (LLM 참고용)
 
-이 문서는 `src/pages/*/README.md`에 흩어져 있는 라우트별 설명을 하나로 요약한 것입니다.
-각 페이지 README가 변경되면 이 파일도 함께 갱신하세요.
+이 문서는 `src/pages/` 디렉토리의 모든 라우트를 요약한 것입니다.
+프로젝트 업데이트 시 이 파일도 함께 갱신하세요.
+
+**최종 업데이트**: 2025-02-02
 
 ## 라우트 개요
 
-- `/` -> Dashboard
-- `/login` -> Login
-- `/request` -> LeaveRequest
-- `/approval` -> LeaveApproval
-- `/history` -> LeaveHistory (placeholder)
-- `/calendar` -> LeaveCalendar ✅
-- `/settings` -> Settings (placeholder)
-- `/night-shift-stats` -> NightShiftStats (구현 예정)
-- `/settings/night-shift` -> NightShiftManagement (구현 예정)
+### 인증
+- `/login` → Login ✅
 
-## 라우트: `/` (Dashboard)
+### 공개 (인증 필요)
+- `/register` → UserRegistration ✅
+- `/` → Dashboard (ADMIN 전용) ✅
+- `/calendar` → LeaveCalendar ✅
+- `/request` → LeaveRequest ✅
+- `/approval` → LeaveApproval (ADMIN 전용) ✅
+- `/history` → LeaveHistory ✅
+- `/night-shift-stats` → NightShiftStats ✅
 
-- 목적: 팀원들의 연차 현황을 카드 형태로 한눈에 확인하는 관리자용 대시보드.
-- 상태: `sampleData` 기반 구현 완료, Supabase 연동 예정.
-- 핵심 기능:
-  - 사용자별 연차 통계 (total/used/reserved/remain)
+### 설정 (ADMIN 전용)
+- `/settings` → Settings (index) ✅
+- `/settings/leave-management` → UserLeaveManagement ✅
+- `/settings/history` → UserHistory ✅
+- `/settings/night-shift` → NightShiftManagement ✅
+
+## 라우트: `/` (Dashboard) - ADMIN 전용 ✅
+
+- **목적**: 팀원들의 연차 현황을 카드 형태로 한눈에 확인하는 관리자용 대시보드
+- **상태**: Supabase 연동 완료
+- **핵심 기능**:
+  - 전체 직원의 연차 통계 카드 표시 (total/used/reserved/remain)
+  - 그룹별 필터링
   - 연도별 잔여 연차 상세
   - 사용률 프로그레스 바
   - 만료 예정 연차 표시
-  - `LeaveHistoryModal`로 상세 이력 모달 제공
-- 데이터 소스:
-  - 현재 `sampleData`
-  - `getLeaveStatus(userId, balances, reservations)` in `@/utils/leave.ts`
-- 상태:
-  - `selectedUserId` (모달 대상 선택)
-- UI/레이아웃:
+  - `LeaveHistoryModal`로 직원별 상세 이력 모달
+- **API 사용**:
+  - `getAllUsers('ACTIVE')`: 활성 사용자 목록
+  - `getUserLeaveStatus(userId)`: 사용자별 연차 현황
+- **React Router Loader**: 데이터 프리로드로 빠른 초기 렌더링
+- **UI/레이아웃**:
   - 반응형 그리드 (`minmax(240px, 1fr)`), max width 1400px
   - 사용률 계산: `used / total * 100`
-- 주요 타입:
-  - `LeaveStatus` (total/used/reserved/remain/balances/nearest_expiry 포함)
 
-## 라우트: `/approval` (LeaveApproval)
+## 라우트: `/approval` (LeaveApproval) - ADMIN 전용 ✅
 
-- 목적: 연차 예약 및 사용 완료 이력을 확인하고 취소/복구.
-- 상태: `sampleData` 기반 구현 완료, Supabase 연동 예정.
-- 핵심 기능:
-  - 예약 목록(`RESERVED`) 표시 및 취소 (`CANCELLED`)
-  - 사용 이력 목록 표시 및 취소 + 연차 복구
-- 유틸리티:
-  - `cancelLeaveReservation(reservations, reservationId)` in `@/utils/leaveManagement.ts`
-    - 상태만 `CANCELLED`로 변경, 잔액 복구 없음
-  - `cancelLeaveHistory(balances, history, historyId)` in `@/utils/leaveManagement.ts`
-    - `source_year` 기준으로 잔액 복구, 히스토리 제거
-- UI:
-  - 예약 카드 / 사용 완료 카드 2영역
-  - 성공/에러 Callout
-- 참고:
-  - 예약 취소는 잔액 복구 없음 (차감 전)
-  - 사용 이력 취소는 잔액 복구 필요 (차감 후)
+- **목적**: 대기 중인 연차 신청을 승인하거나 반려하는 관리자 페이지
+- **상태**: Supabase 연동 완료
+- **핵심 기능**:
+  - 대기 중인 예약 목록 (`status='RESERVED'`) 표시
+  - 승인 버튼: `approve_leave()` RPC 호출하여 FIFO 차감
+  - 반려 버튼: `cancel_leave()` RPC 호출
+  - 그룹별 필터링
+- **API 사용**:
+  - `getAllLeaveReservations('RESERVED')`: 대기 중인 신청 목록
+  - `approveLeave(reservationId)`: 승인 처리
+  - `cancelLeave(reservationId)`: 반려 처리
+- **비즈니스 로직**:
+  - 승인 시 만료일이 빠른 연차부터 자동 차감 (FIFO)
+  - 차감 내역은 `leave_history`에 `source_year`와 함께 기록
+- **UI**:
+  - 예약 카드 리스트 형태
+  - 승인/반려 버튼
+  - 성공/에러 Callout 메시지
 
 ## 라우트: `/history` (LeaveHistory)
 

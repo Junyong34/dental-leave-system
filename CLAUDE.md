@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Dental Leave System (더와이즈 치과병원 연차 관리 시스템) - A web-based leave management system for approximately 80 employees at a dental hospital. Built with React 19 + TypeScript + Supabase.
+Dental Leave System (더와이즈 치과병원 연차 관리 시스템) - A comprehensive web-based leave management and night shift tracking system for approximately 80 employees at a dental hospital. Built with React 19 + TypeScript + Supabase.
+
+**Key Features:**
+- Annual leave request/approval with FIFO deduction
+- Full calendar view with FullCalendar library
+- Night shift management and statistics
+- Role-based access control (ADMIN/USER/VIEW)
+- Multi-environment support (dev/qa/prod)
 
 ## Development Commands
 
@@ -109,11 +116,16 @@ Defined in `src/router/index.tsx`:
 - Public routes: `/login`, `/register` (protected but different flow)
 - Protected routes under `/`:
   - `/` - Dashboard (ADMIN only)
-  - `/calendar` - Leave calendar (all authenticated)
+  - `/calendar` - Leave calendar with FullCalendar (all authenticated)
   - `/request` - Leave request form (all authenticated)
   - `/approval` - Leave approval page (ADMIN only)
   - `/history` - Leave history (all authenticated)
+  - `/night-shift-stats` - Night shift statistics (all authenticated)
   - `/settings/*` - Settings pages (ADMIN only)
+    - `/settings` - General settings (index)
+    - `/settings/leave-management` - Manual leave adjustment
+    - `/settings/history` - User change history
+    - `/settings/night-shift` - Night shift management
 
 ### Project Structure Conventions
 
@@ -126,23 +138,31 @@ src/
 │   └── layout/        # Layout components (Header, Navigation, Layout)
 ├── pages/             # Page-level components (one folder per route)
 │   ├── Dashboard/     # Team leave overview (ADMIN)
-│   ├── LeaveCalendar/ # Calendar view of leaves
+│   ├── LeaveCalendar/ # Calendar view with FullCalendar
 │   ├── LeaveRequest/  # Leave request form
 │   ├── LeaveApproval/ # Approve/reject leaves (ADMIN)
 │   ├── LeaveHistory/  # User's leave history
+│   ├── NightShiftStats/ # Night shift statistics
+│   ├── UserRegistration/ # User registration form
 │   ├── Settings/      # System settings (ADMIN)
 │   └── Login/         # Login page
 ├── lib/
 │   └── supabase/      # Supabase integration layer
 │       ├── api/       # API functions organized by domain
+│       │   ├── auth.ts      # Authentication API
+│       │   ├── leave.ts     # Leave management API
+│       │   ├── user.ts      # User management API
+│       │   └── nightShift.ts # Night shift API
 │       ├── types/     # Database type definitions
+│       │   └── database.types.ts # Auto-generated from Supabase
 │       ├── client.ts  # Supabase client singleton
-│       └── schema.sql # Database schema (reference)
-├── store/             # Zustand stores (currently only authStore)
-├── router/            # React Router configuration
+│       ├── config.ts  # Environment-based configuration
+│       └── schema.sql # Complete database schema (reference)
+├── store/             # Zustand stores (authStore with localStorage persist)
+├── router/            # React Router 7 configuration
 ├── hooks/             # Custom React hooks (e.g., useUserProfile)
 ├── utils/             # Utility functions and constants
-└── types/             # TypeScript type definitions
+└── types/             # TypeScript type definitions (nightShift types, etc.)
 ```
 
 ### Important Implementation Details
@@ -177,6 +197,15 @@ src/
 - Run `pnpm lint:fix` before committing
 - Biome config: `biome.json`
 
+#### Night Shift Management
+- **employees table**: Supports employees without user accounts (`user_id` nullable)
+- **night_shift_config**: Dynamic weekday configuration (MON-SAT)
+- **night_shift_records**: Records with auto-calculated weekday
+- **Statistics RPC functions**:
+  - `get_night_shift_stats(employee_id, year, month)`: Individual employee stats
+  - `get_all_employees_stats(year, month)`: All employees comparison
+  - `get_active_weekdays()`: Currently active night shift days
+
 ### Important Notes
 
 1. **Never hardcode user IDs**: Always use `auth.uid()` in RLS policies or RPC functions
@@ -185,6 +214,9 @@ src/
 4. **Session management**: Handled automatically by Supabase + authStore persistence
 5. **Path alias**: Use `@/` for absolute imports (e.g., `import { foo } from '@/lib/utils'`)
 6. **Testing**: Use Vitest + happy-dom (not jsdom)
+7. **Package Manager**: Always use `pnpm`, never `npm` or `yarn`
+8. **Environment Files**: Different `.env.*` files for dev/qa/prod environments
+9. **Night Shift Employees**: Can exist without user accounts, linked later via `user_id` update
 
 ### Common Pitfalls
 
@@ -193,10 +225,17 @@ src/
 - Don't mutate leave_history directly - use cancel functions
 - Don't forget to check role before rendering admin-only UI components
 - Don't use ESLint or Prettier commands - this project uses Biome
+- Don't create duplicate night shift records for same employee/date
+- Don't hardcode weekday values - use RPC functions that calculate from date
 
 ### Key Files to Reference
 
+- `AGENT.md` - Project structure and architecture overview
 - `PRD.md` - Product requirements and business logic
+- `README.md` - Quick start guide and API usage examples
+- `docs/pages/NightShift-PRD.md` - Night shift feature specification
+- `docs/pages/LeaveCalendar-PRD.md` - Calendar feature specification
 - `src/lib/supabase/schema.sql` - Complete database schema with RLS and RPC functions
 - `src/store/authStore.ts` - Well-documented auth state management
 - `src/router/index.tsx` - Route structure and role requirements
+- `src/lib/supabase/api/nightShift.ts` - Night shift API layer
