@@ -50,6 +50,7 @@ export interface ApiResponse {
 // 폼 데이터 타입
 export interface EmployeeFormData {
   name: string
+  status: EmployeeStatus
 }
 
 export interface NightShiftRecordFormData {

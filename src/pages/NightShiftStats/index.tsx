@@ -1,14 +1,29 @@
-import { Badge, Button, Card, Flex, Select, Text } from '@radix-ui/themes'
-import { Download } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import {
+  Badge,
+  Box,
+  Button,
+  Callout,
+  Card,
+  Dialog,
+  Flex,
+  Select,
+  Text,
+  TextField,
+} from '@radix-ui/themes'
+import { AlertCircle, CheckCircle2, Download, Plus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  createNightShiftRecord,
   getAllEmployees,
   getAllEmployeesNightShiftStats,
+  getNightShiftConfig,
 } from '@/lib/supabase/api/nightShift'
 import type {
   Employee,
   EmployeeNightShiftStats,
+  NightShiftConfig,
   NightShiftStats,
+  Weekday,
 } from '@/types/nightShift'
 
 const WEEKDAY_LABELS: Record<string, string> = {
@@ -20,6 +35,26 @@ const WEEKDAY_LABELS: Record<string, string> = {
   SAT: '토',
   SUN: '일',
 }
+
+const WEEKDAY_FULL_LABELS: Record<Weekday, string> = {
+  MON: '월요일',
+  TUE: '화요일',
+  WED: '수요일',
+  THU: '목요일',
+  FRI: '금요일',
+  SAT: '토요일',
+  SUN: '일요일',
+}
+
+const WEEKDAY_BY_INDEX: Weekday[] = [
+  'SUN',
+  'MON',
+  'TUE',
+  'WED',
+  'THU',
+  'FRI',
+  'SAT',
+]
 
 const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -34,43 +69,95 @@ function NightShiftStatsPage() {
   )
 
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [config, setConfig] = useState<NightShiftConfig[]>([])
   const [stats, setStats] = useState<EmployeeNightShiftStats[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
+  const [selectedRecordEmployeeId, setSelectedRecordEmployeeId] = useState<
+    number | null
+  >(null)
+  const [selectedRecordDate, setSelectedRecordDate] = useState('')
+  const [addRecordLoading, setAddRecordLoading] = useState(false)
+
+  const activeWeekdays = useMemo(() => {
+    return new Set(
+      config.filter((item) => item.is_active).map((item) => item.weekday),
+    )
+  }, [config])
+
+  const selectedRecordWeekday = useMemo<Weekday | null>(() => {
+    if (!selectedRecordDate) return null
+    const localDate = new Date(`${selectedRecordDate}T00:00:00`)
+    return WEEKDAY_BY_INDEX[localDate.getDay()]
+  }, [selectedRecordDate])
+
+  const isSelectedDateActive =
+    !selectedRecordWeekday || activeWeekdays.has(selectedRecordWeekday)
 
   // 직원 목록 로드
   useEffect(() => {
-    const loadEmployees = async () => {
-      const result = await getAllEmployees('ACTIVE')
-      if (result.success && result.data) {
-        setEmployees(result.data)
+    const loadMeta = async () => {
+      const [employeesResult, configResult] = await Promise.all([
+        getAllEmployees('ACTIVE'),
+        getNightShiftConfig(),
+      ])
+
+      if (employeesResult.success && employeesResult.data) {
+        setEmployees(employeesResult.data)
+      } else if (!employeesResult.success) {
+        setActionError(employeesResult.message)
+      }
+
+      if (configResult.success && configResult.data) {
+        setConfig(configResult.data)
+      } else if (!configResult.success) {
+        setActionError(configResult.message)
       }
     }
-    loadEmployees()
+
+    loadMeta()
   }, [])
 
   // 통계 데이터 로드
-  useEffect(() => {
-    const loadStats = async () => {
-      setLoading(true)
-      setError(null)
+  const loadStats = useCallback(async () => {
+    setLoading(true)
+    setError(null)
 
-      const result = await getAllEmployeesNightShiftStats(
-        year,
-        month || undefined,
-      )
+    const result = await getAllEmployeesNightShiftStats(
+      year,
+      month || undefined,
+    )
 
-      if (result.success && result.data) {
-        setStats(result.data)
-      } else {
-        setError(result.message)
-      }
-
-      setLoading(false)
+    if (result.success && result.data) {
+      setStats(result.data)
+    } else {
+      setError(result.message)
     }
 
+    setLoading(false)
+  }, [month, year])
+
+  useEffect(() => {
     loadStats()
-  }, [year, month])
+  }, [loadStats])
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [success])
+
+  useEffect(() => {
+    if (actionError) {
+      const timer = setTimeout(() => setActionError(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [actionError])
 
   // 필터링된 통계
   const filteredStats = selectedEmployeeId
@@ -99,6 +186,42 @@ function NightShiftStatsPage() {
     link.download = `야간근무통계_${year}${month ? `_${month}월` : '년'}.csv`
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleAddRecord = async () => {
+    setActionError(null)
+
+    if (!selectedRecordEmployeeId) {
+      setActionError('직원을 선택해주세요.')
+      return
+    }
+
+    if (!selectedRecordDate) {
+      setActionError('날짜를 선택해주세요.')
+      return
+    }
+
+    if (selectedRecordWeekday && !activeWeekdays.has(selectedRecordWeekday)) {
+      setActionError('선택한 날짜는 야간 진료 비활성 요일입니다.')
+      return
+    }
+
+    setAddRecordLoading(true)
+    const result = await createNightShiftRecord(
+      selectedRecordEmployeeId,
+      selectedRecordDate,
+    )
+    setAddRecordLoading(false)
+
+    if (result.success) {
+      setSuccess('야간 진료가 추가되었습니다.')
+      setSelectedRecordEmployeeId(null)
+      setSelectedRecordDate('')
+      setIsAddRecordOpen(false)
+      loadStats()
+    } else {
+      setActionError(result.message)
+    }
   }
 
   // 가장 많이 근무한 요일 찾기
@@ -194,6 +317,24 @@ function NightShiftStatsPage() {
           </Text>
         </div>
 
+        {success && (
+          <Callout.Root color="green">
+            <Callout.Icon>
+              <CheckCircle2 size={16} />
+            </Callout.Icon>
+            <Callout.Text>{success}</Callout.Text>
+          </Callout.Root>
+        )}
+
+        {actionError && (
+          <Callout.Root color="red">
+            <Callout.Icon>
+              <AlertCircle size={16} />
+            </Callout.Icon>
+            <Callout.Text>{actionError}</Callout.Text>
+          </Callout.Root>
+        )}
+
         {/* 필터 */}
         <Card>
           <Flex gap="3" wrap="wrap" align="center">
@@ -262,7 +403,11 @@ function NightShiftStatsPage() {
               </Select.Root>
             </Flex>
 
-            <div style={{ marginLeft: 'auto' }}>
+            <Flex gap="2" style={{ marginLeft: 'auto' }}>
+              <Button onClick={() => setIsAddRecordOpen(true)}>
+                <Plus size={16} />
+                야간진료 추가
+              </Button>
               <Button
                 variant="soft"
                 onClick={handleExportCSV}
@@ -271,7 +416,7 @@ function NightShiftStatsPage() {
                 <Download size={16} />
                 CSV 내보내기
               </Button>
-            </div>
+            </Flex>
           </Flex>
         </Card>
 
@@ -312,6 +457,105 @@ function NightShiftStatsPage() {
             </div>
           ))}
       </Flex>
+
+      <Dialog.Root open={isAddRecordOpen} onOpenChange={setIsAddRecordOpen}>
+        <Dialog.Content>
+          <Dialog.Title>야간진료 추가</Dialog.Title>
+          <Dialog.Description>
+            야간 진료 요일 설정에서 활성화된 요일만 등록할 수 있습니다.
+          </Dialog.Description>
+
+          <Flex direction="column" gap="3" mt="4">
+            <Box>
+              <Text
+                size="2"
+                weight="bold"
+                as="label"
+                style={{ display: 'block', marginBottom: '8px' }}
+              >
+                직원
+              </Text>
+              <Select.Root
+                value={selectedRecordEmployeeId?.toString()}
+                onValueChange={(value) =>
+                  setSelectedRecordEmployeeId(Number(value))
+                }
+              >
+                <Select.Trigger placeholder="직원 선택" />
+                <Select.Content>
+                  {employees.map((emp) => (
+                    <Select.Item key={emp.id} value={emp.id.toString()}>
+                      {emp.name}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Root>
+            </Box>
+
+            <Box>
+              <Text size="2" weight="bold" as="label">
+                날짜
+              </Text>
+              <TextField.Root
+                type="date"
+                value={selectedRecordDate}
+                onChange={(e) => setSelectedRecordDate(e.target.value)}
+              />
+            </Box>
+
+            <Box>
+              <Text size="2" weight="bold" as="label">
+                활성 요일
+              </Text>
+              <Flex gap="2" wrap="wrap" mt="1">
+                {WEEKDAY_ORDER.map((weekday) => {
+                  const isActive = activeWeekdays.has(weekday as Weekday)
+                  return (
+                    <Badge
+                      key={weekday}
+                      color={isActive ? 'green' : 'gray'}
+                      variant={isActive ? 'solid' : 'soft'}
+                    >
+                      {WEEKDAY_LABELS[weekday]}
+                    </Badge>
+                  )
+                })}
+              </Flex>
+              {activeWeekdays.size === 0 && (
+                <Text size="2" color="red" mt="2">
+                  활성화된 요일이 없습니다. 설정에서 요일을 먼저 활성화하세요.
+                </Text>
+              )}
+            </Box>
+
+            {selectedRecordWeekday && (
+              <Text size="2" color={isSelectedDateActive ? 'gray' : 'red'}>
+                선택한 날짜: {WEEKDAY_FULL_LABELS[selectedRecordWeekday]} ·{' '}
+                {isSelectedDateActive ? '활성' : '비활성'}
+              </Text>
+            )}
+          </Flex>
+
+          <Flex gap="3" mt="4" justify="end">
+            <Dialog.Close>
+              <Button variant="soft" color="gray">
+                취소
+              </Button>
+            </Dialog.Close>
+            <Button
+              onClick={handleAddRecord}
+              disabled={
+                addRecordLoading ||
+                !selectedRecordEmployeeId ||
+                !selectedRecordDate ||
+                !isSelectedDateActive
+              }
+            >
+              {addRecordLoading ? '추가 중...' : '추가'}
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
     </div>
   )
 }

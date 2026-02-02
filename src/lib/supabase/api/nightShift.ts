@@ -93,11 +93,12 @@ export async function getEmployeeById(
  * 직원 생성
  *
  * @param name - 직원 이름
+ * @param status - 직원 상태 (기본값: ACTIVE)
  * @returns 생성된 직원 정보
  *
  * @example
  * ```ts
- * const result = await createEmployee('홍길동')
+ * const result = await createEmployee('홍길동', 'ACTIVE')
  * if (result.success) {
  *   console.log('직원 생성 완료:', result.data)
  * }
@@ -105,11 +106,12 @@ export async function getEmployeeById(
  */
 export async function createEmployee(
   name: string,
+  status: EmployeeStatus = 'ACTIVE',
 ): Promise<ApiResponse & { data?: Employee }> {
   try {
     const { data, error } = await supabase
       .from('employees')
-      .insert({ name, status: 'ACTIVE' })
+      .insert({ name, status })
       .select()
       .single()
 
