@@ -22,6 +22,16 @@ export interface ApiResponse<T = unknown> {
   error?: string
 }
 
+const getRpcPayload = <T extends Record<string, unknown>>(
+  data: unknown,
+): T | null => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return null
+  }
+
+  return data as T
+}
+
 /**
  * 연차 잔액 조회 (연도별)
  *
@@ -316,22 +326,29 @@ export async function reserveLeave(
   session: LeaveSession,
 ): Promise<ApiResponse<{ reservation_id?: number; message?: string }>> {
   try {
+    const sessionValue = session ?? ''
     const { data, error } = await supabase.rpc('reserve_leave', {
       p_user_id: userId,
       p_date: date,
       p_type: type,
-      p_session: session,
+      p_session: sessionValue,
     })
 
     if (error) {
       return { success: false, error: error.message }
     }
 
+    const payload = getRpcPayload<{
+      success?: boolean
+      reservation_id?: number
+      message?: string
+    }>(data)
+    const success = !!payload?.success
+
     return {
-      success: !!data?.success,
-      data:
-        (data as { reservation_id?: number; message?: string }) || undefined,
-      error: data?.success ? undefined : data?.message,
+      success,
+      data: payload || undefined,
+      error: success ? undefined : payload?.message,
     }
   } catch (err) {
     return {
@@ -368,10 +385,13 @@ export async function cancelLeave(
       return { success: false, error: error.message }
     }
 
+    const payload = getRpcPayload<{ success?: boolean; message?: string }>(data)
+    const success = !!payload?.success
+
     return {
-      success: !!data?.success,
-      data: (data as { message?: string }) || undefined,
-      error: data?.success ? undefined : data?.message,
+      success,
+      data: payload || undefined,
+      error: success ? undefined : payload?.message,
     }
   } catch (err) {
     return {
@@ -408,10 +428,13 @@ export async function cancelLeaveHistory(
       return { success: false, error: error.message }
     }
 
+    const payload = getRpcPayload<{ success?: boolean; message?: string }>(data)
+    const success = !!payload?.success
+
     return {
-      success: !!data?.success,
-      data: (data as { message?: string }) || undefined,
-      error: data?.success ? undefined : data?.message,
+      success,
+      data: payload || undefined,
+      error: success ? undefined : payload?.message,
     }
   } catch (err) {
     return {
@@ -448,10 +471,13 @@ export async function cancelLeaveUsedReservation(
       return { success: false, error: error.message }
     }
 
+    const payload = getRpcPayload<{ success?: boolean; message?: string }>(data)
+    const success = !!payload?.success
+
     return {
-      success: !!data?.success,
-      data: (data as { message?: string }) || undefined,
-      error: data?.success ? undefined : data?.message,
+      success,
+      data: payload || undefined,
+      error: success ? undefined : payload?.message,
     }
   } catch (err) {
     return {
