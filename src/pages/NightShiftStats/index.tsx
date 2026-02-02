@@ -10,6 +10,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes'
+import { addDays, format, isValid, parseISO, startOfDay } from 'date-fns'
 import { AlertCircle, CheckCircle2, Download, Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SearchableEmployeeSelect } from '@/components/common/SearchableEmployeeSelect'
@@ -63,6 +64,7 @@ const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 const CURRENT_YEAR = new Date().getFullYear()
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
+
 function NightShiftStatsPage() {
   const [year, setYear] = useState(CURRENT_YEAR)
   const [month, setMonth] = useState<number | null>(null)
@@ -95,12 +97,34 @@ function NightShiftStatsPage() {
 
   const selectedRecordWeekday = useMemo<Weekday | null>(() => {
     if (!selectedRecordDate) return null
-    const localDate = new Date(`${selectedRecordDate}T00:00:00`)
+    const localDate = parseISO(selectedRecordDate)
+    if (!isValid(localDate)) return null
     return WEEKDAY_BY_INDEX[localDate.getDay()]
   }, [selectedRecordDate])
 
   const isSelectedDateActive =
     !selectedRecordWeekday || activeWeekdays.has(selectedRecordWeekday)
+
+  const nextActiveDates = useMemo(() => {
+    if (activeWeekdays.size === 0) return []
+
+    const results: { value: string; label: string }[] = []
+    const baseDate = startOfDay(new Date())
+
+    for (let offset = 0; results.length < 5 && offset < 365; offset += 1) {
+      const candidate = addDays(baseDate, offset)
+      const weekday = WEEKDAY_BY_INDEX[candidate.getDay()]
+
+      if (activeWeekdays.has(weekday)) {
+        results.push({
+          value: format(candidate, 'yyyy-MM-dd'),
+          label: `${format(candidate, 'M/d')} (${WEEKDAY_LABELS[weekday]})`,
+        })
+      }
+    }
+
+    return results
+  }, [activeWeekdays])
 
   // 직원 목록 로드
   useEffect(() => {
@@ -283,23 +307,36 @@ function NightShiftStatsPage() {
     }
   }
 
-  // 가장 많이 근무한 요일 찾기
-  const getMaxWeekday = (stats: NightShiftStats): string | null => {
+  // 가장 많이 근무한 요일들 찾기 (동률 포함)
+  const getMaxWeekdays = (
+    stats: NightShiftStats,
+  ): { weekdays: string[]; maxCount: number } | null => {
     const entries = Object.entries(stats)
     if (entries.length === 0) return null
-    const max = entries.reduce((prev, curr) =>
-      curr[1] > prev[1] ? curr : prev,
-    )
-    return max[0]
+
+    const maxCount = Math.max(...entries.map(([, count]) => count))
+    if (maxCount === 0) return null
+
+    const weekdays = entries
+      .filter(([, count]) => count === maxCount)
+      .map(([weekday]) => weekday)
+
+    return { weekdays, maxCount }
   }
 
   // 통계 카드 컴포넌트
   const StatsCard = ({ emp }: { emp: EmployeeNightShiftStats }) => {
-    const maxWeekday = getMaxWeekday(emp.stats)
+    const maxWeekdayInfo = getMaxWeekdays(emp.stats)
     const totalCount = Object.values(emp.stats).reduce(
       (sum, count) => sum + count,
       0,
     )
+
+    const maxWeekdayLabel = maxWeekdayInfo
+      ? maxWeekdayInfo.weekdays
+          .map((weekday) => WEEKDAY_LABELS[weekday])
+          .join(', ')
+      : null
 
     return (
       <Card>
@@ -322,7 +359,10 @@ function NightShiftStatsPage() {
           >
             {WEEKDAY_ORDER.map((weekday) => {
               const count = emp.stats[weekday] || 0
-              const isMax = weekday === maxWeekday && count > 0
+              const isMax =
+                !!maxWeekdayInfo &&
+                maxWeekdayInfo.weekdays.includes(weekday) &&
+                count > 0
 
               return (
                 <div
@@ -348,10 +388,10 @@ function NightShiftStatsPage() {
             })}
           </div>
 
-          {maxWeekday && totalCount > 0 && (
+          {maxWeekdayInfo && maxWeekdayLabel && totalCount > 0 && (
             <Text size="2" color="gray">
-              <strong>{WEEKDAY_LABELS[maxWeekday]}요일</strong>에 가장 많이 근무
-              ({emp.stats[maxWeekday]}회)
+              <strong>{maxWeekdayLabel}요일</strong>에 가장 많이 근무 (
+              {maxWeekdayInfo.maxCount}회)
             </Text>
           )}
 
@@ -540,6 +580,31 @@ function NightShiftStatsPage() {
                 value={selectedRecordDate}
                 onChange={(e) => setSelectedRecordDate(e.target.value)}
               />
+              {nextActiveDates.length > 0 && (
+                <>
+                  <Text size="1" color="gray" mt="2">
+                    다음 활성 요일
+                  </Text>
+                  <Flex gap="2" wrap="wrap" mt="1">
+                    {nextActiveDates.map((dateOption) => (
+                      <Button
+                        key={dateOption.value}
+                        size="1"
+                        variant={
+                          selectedRecordDate === dateOption.value
+                            ? 'solid'
+                            : 'soft'
+                        }
+                        onClick={() =>
+                          setSelectedRecordDate(dateOption.value)
+                        }
+                      >
+                        {dateOption.label}
+                      </Button>
+                    ))}
+                  </Flex>
+                </>
+              )}
             </Box>
 
             <Box>
