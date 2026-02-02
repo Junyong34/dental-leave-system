@@ -18,6 +18,7 @@ import {
   getAllEmployees,
   getAllEmployeesNightShiftStats,
   getNightShiftConfig,
+  getNightShiftRecords,
 } from '@/lib/supabase/api/nightShift'
 import type {
   Employee,
@@ -83,6 +84,8 @@ function NightShiftStatsPage() {
   >(null)
   const [selectedRecordDate, setSelectedRecordDate] = useState('')
   const [addRecordLoading, setAddRecordLoading] = useState(false)
+  const [isRecordDuplicate, setIsRecordDuplicate] = useState(false)
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false)
 
   const activeWeekdays = useMemo(() => {
     return new Set(
@@ -160,6 +163,42 @@ function NightShiftStatsPage() {
     }
   }, [actionError])
 
+  useEffect(() => {
+    let isActive = true
+
+    const checkDuplicate = async () => {
+      if (!selectedRecordEmployeeId || !selectedRecordDate) {
+        if (isActive) {
+          setIsRecordDuplicate(false)
+          setIsCheckingDuplicate(false)
+        }
+        return
+      }
+
+      setIsCheckingDuplicate(true)
+      const result = await getNightShiftRecords({
+        employeeId: selectedRecordEmployeeId,
+        startDate: selectedRecordDate,
+        endDate: selectedRecordDate,
+      })
+
+      if (!isActive) return
+
+      if (result.success) {
+        setIsRecordDuplicate((result.data ?? []).length > 0)
+      } else {
+        setIsRecordDuplicate(false)
+      }
+      setIsCheckingDuplicate(false)
+    }
+
+    checkDuplicate()
+
+    return () => {
+      isActive = false
+    }
+  }, [selectedRecordDate, selectedRecordEmployeeId])
+
   // 필터링된 통계
   const filteredStats = selectedEmployeeId
     ? stats.filter((s) => s.employee_id === selectedEmployeeId)
@@ -208,6 +247,25 @@ function NightShiftStatsPage() {
     }
 
     setAddRecordLoading(true)
+
+    const existingRecordResult = await getNightShiftRecords({
+      employeeId: selectedRecordEmployeeId,
+      startDate: selectedRecordDate,
+      endDate: selectedRecordDate,
+    })
+
+    if (!existingRecordResult.success) {
+      setActionError(existingRecordResult.message)
+      setAddRecordLoading(false)
+      return
+    }
+
+    if ((existingRecordResult.data ?? []).length > 0) {
+      setActionError('이미 해당 날짜에 등록된 야간 진료가 있습니다.')
+      setAddRecordLoading(false)
+      return
+    }
+
     const result = await createNightShiftRecord(
       selectedRecordEmployeeId,
       selectedRecordDate,
@@ -510,9 +568,16 @@ function NightShiftStatsPage() {
             </Box>
 
             {selectedRecordWeekday && (
-              <Text size="2" color={isSelectedDateActive ? 'gray' : 'red'}>
+              <Text
+                size="2"
+                color={
+                  !isSelectedDateActive || isRecordDuplicate ? 'red' : 'gray'
+                }
+              >
                 선택한 날짜: {WEEKDAY_FULL_LABELS[selectedRecordWeekday]} ·{' '}
                 {isSelectedDateActive ? '활성' : '비활성'}
+                {isCheckingDuplicate ? ' · 중복 확인 중' : ''}
+                {isRecordDuplicate ? ' · 이미 진료기록에 추가됨' : ''}
               </Text>
             )}
           </Flex>
@@ -527,6 +592,8 @@ function NightShiftStatsPage() {
               onClick={handleAddRecord}
               disabled={
                 addRecordLoading ||
+                isCheckingDuplicate ||
+                isRecordDuplicate ||
                 !selectedRecordEmployeeId ||
                 !selectedRecordDate ||
                 !isSelectedDateActive
