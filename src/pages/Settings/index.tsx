@@ -21,7 +21,7 @@ export default function Settings() {
       icon: <History size={18} />,
     },
     {
-      label: '야간 근무 관리',
+      label: '야간 진료 관리',
       path: '/settings/night-shift',
       icon: <Moon size={18} />,
     },

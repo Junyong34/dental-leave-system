@@ -12,6 +12,7 @@ import {
 } from '@radix-ui/themes'
 import { AlertCircle, CheckCircle2, Download, Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SearchableEmployeeSelect } from '@/components/common/SearchableEmployeeSelect'
 import {
   createNightShiftRecord,
   getAllEmployees,
@@ -298,7 +299,7 @@ function NightShiftStatsPage() {
 
           {totalCount === 0 && (
             <Text size="2" color="gray">
-              기간 내 야간 근무 기록이 없습니다.
+              기간 내 야간 진료 기록이 없습니다.
             </Text>
           )}
         </Flex>
@@ -311,9 +312,9 @@ function NightShiftStatsPage() {
       <Flex direction="column" gap="4">
         {/* 헤더 */}
         <div>
-          <h1 className="rt-r-mb-2">야간 근무 통계</h1>
+          <h1 className="rt-r-mb-2">야간 진료 통계</h1>
           <Text color="gray">
-            직원별 야간 근무 요일 통계를 확인하여 공평한 배분을 지원합니다.
+            직원별 야간 진료 요일 통계를 확인하여 공평한 배분을 지원합니다.
           </Text>
         </div>
 
@@ -382,25 +383,18 @@ function NightShiftStatsPage() {
             </Flex>
 
             <Flex direction="column" gap="1">
-              <Text size="2" weight="bold">
-                직원
-              </Text>
-              <Select.Root
+              <SearchableEmployeeSelect
+                employees={employees}
                 value={selectedEmployeeId?.toString() || 'all'}
                 onValueChange={(val) =>
                   setSelectedEmployeeId(val === 'all' ? null : Number(val))
                 }
-              >
-                <Select.Trigger />
-                <Select.Content>
-                  <Select.Item value="all">전체</Select.Item>
-                  {employees.map((emp) => (
-                    <Select.Item key={emp.id} value={emp.id.toString()}>
-                      {emp.name}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Root>
+                label="직원"
+                placeholder="직원을 선택하세요"
+                showAllOption
+                allOptionLabel="전체"
+                getEmployeeId={(emp) => emp.id.toString()}
+              />
             </Flex>
 
             <Flex gap="2" style={{ marginLeft: 'auto' }}>
@@ -440,7 +434,7 @@ function NightShiftStatsPage() {
           (filteredStats.length === 0 ? (
             <Card>
               <Text color="gray">
-                조회된 통계가 없습니다. 야간 근무 기록을 먼저 등록해주세요.
+                조회된 통계가 없습니다. 야간 진료 기록을 먼저 등록해주세요.
               </Text>
             </Card>
           ) : (
@@ -467,29 +461,16 @@ function NightShiftStatsPage() {
 
           <Flex direction="column" gap="3" mt="4">
             <Box>
-              <Text
-                size="2"
-                weight="bold"
-                as="label"
-                style={{ display: 'block', marginBottom: '8px' }}
-              >
-                직원
-              </Text>
-              <Select.Root
-                value={selectedRecordEmployeeId?.toString()}
+              <SearchableEmployeeSelect
+                employees={employees}
+                value={selectedRecordEmployeeId?.toString() || ''}
                 onValueChange={(value) =>
-                  setSelectedRecordEmployeeId(Number(value))
+                  setSelectedRecordEmployeeId(value ? Number(value) : null)
                 }
-              >
-                <Select.Trigger placeholder="직원 선택" />
-                <Select.Content>
-                  {employees.map((emp) => (
-                    <Select.Item key={emp.id} value={emp.id.toString()}>
-                      {emp.name}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Root>
+                label="직원"
+                placeholder="직원 선택"
+                getEmployeeId={(emp) => emp.id.toString()}
+              />
             </Box>
 
             <Box>

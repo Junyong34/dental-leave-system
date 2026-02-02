@@ -1,4 +1,4 @@
-// 야간 근무 관리 타입 정의
+// 야간 진료 관리 타입 정의
 
 export type EmployeeStatus = 'ACTIVE' | 'INACTIVE'
 

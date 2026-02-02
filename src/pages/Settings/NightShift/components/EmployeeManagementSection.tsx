@@ -37,7 +37,7 @@ export function EmployeeManagementSection({
   const handleDeleteEmployee = async (id: number, name: string) => {
     if (
       !confirm(
-        `${name} 직원을 삭제하시겠습니까?\n관련된 모든 야간 근무 기록도 함께 삭제됩니다.`,
+        `${name} 직원을 삭제하시겠습니까?\n관련된 모든 야간 진료 기록도 함께 삭제됩니다.`,
       )
     ) {
       return
@@ -84,7 +84,7 @@ export function EmployeeManagementSection({
         </Flex>
 
         <Text size="2" color="gray">
-          야간 근무를 담당하는 직원을 관리합니다.
+          야간 진료를 담당하는 직원을 관리합니다.
         </Text>
 
         {employees.length === 0 ? (

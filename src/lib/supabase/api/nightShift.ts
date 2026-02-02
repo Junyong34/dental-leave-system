@@ -1,6 +1,6 @@
 /**
  * Supabase Night Shift API
- * 야간 근무 관리 관련 모든 데이터 조회/수정/삭제 로직을 캡슐화합니다.
+ * 야간 진료 관리 관련 모든 데이터 조회/수정/삭제 로직을 캡슐화합니다.
  */
 
 import type {
@@ -367,15 +367,15 @@ export async function updateNightShiftConfig(
 
 /**
  * ================================================================
- * Night Shift Records (야간 근무 기록)
+ * Night Shift Records (야간 진료 기록)
  * ================================================================
  */
 
 /**
- * 야간 근무 기록 조회
+ * 야간 진료 기록 조회
  *
  * @param filters - 필터 옵션
- * @returns 야간 근무 기록 목록
+ * @returns 야간 진료 기록 목록
  */
 export async function getNightShiftRecords(filters?: {
   employeeId?: number
@@ -416,7 +416,7 @@ export async function getNightShiftRecords(filters?: {
 }
 
 /**
- * 야간 근무 기록 생성 (RPC 사용 - weekday 자동 계산)
+ * 야간 진료 기록 생성 (RPC 사용 - weekday 자동 계산)
  *
  * @param employeeId - 직원 ID
  * @param workDate - 근무 날짜 (YYYY-MM-DD)
@@ -449,7 +449,7 @@ export async function createNightShiftRecord(
 }
 
 /**
- * 야간 근무 기록 삭제
+ * 야간 진료 기록 삭제
  *
  * @param id - 기록 ID
  * @returns 삭제 결과
@@ -473,7 +473,7 @@ export async function deleteNightShiftRecord(id: number): Promise<ApiResponse> {
 }
 
 /**
- * 날짜와 직원 ID로 야간 근무 기록 삭제
+ * 날짜와 직원 ID로 야간 진료 기록 삭제
  *
  * @param employeeId - 직원 ID
  * @param workDate - 근무 날짜
@@ -508,7 +508,7 @@ export async function deleteNightShiftRecordByDate(
  */
 
 /**
- * 개별 직원 야간 근무 통계 조회
+ * 개별 직원 야간 진료 통계 조회
  *
  * @param employeeId - 직원 ID
  * @param year - 연도
@@ -554,7 +554,7 @@ export async function getNightShiftStats(
 }
 
 /**
- * 전체 직원 야간 근무 통계 조회
+ * 전체 직원 야간 진료 통계 조회
  *
  * @param year - 연도
  * @param month - 월 (선택)

@@ -9,6 +9,7 @@ import {
 } from '@radix-ui/themes'
 import { AlertCircle, Calendar } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { SearchableEmployeeSelect } from '@/components/common/SearchableEmployeeSelect'
 import {
   getLeaveBalances,
   getLeaveReservations,
@@ -187,41 +188,17 @@ export default function LeaveRequest() {
 
       {/* 사용자 선택 */}
       <Card className="rt-r-mb-4">
-        <Flex direction="column" gap="4">
-          <Box>
-            <Text
-              as="label"
-              size="2"
-              weight="medium"
-              style={{ display: 'block', marginBottom: '8px' }}
-            >
-              직원 선택
-            </Text>
-            <Select.Root
-              value={selectedUserId}
-              onValueChange={setSelectedUserId}
-            >
-              <Select.Trigger placeholder="직원을 선택하세요" />
-              <Select.Content
-                position="popper"
-                sideOffset={5}
-                collisionPadding={10}
-                align="start"
-                side="bottom"
-                style={{
-                  maxHeight: '300px',
-                  minWidth: '200px',
-                  width: 'var(--radix-select-trigger-width)',
-                }}
-              >
-                {activeUsers.map((user) => (
-                  <Select.Item key={user.user_id} value={user.user_id}>
-                    {user.name}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Root>
-          </Box>
+        <Flex direction="column" gap="4" style={{ maxWidth: '300px' }}>
+          <SearchableEmployeeSelect
+            employees={activeUsers.map((user) => ({
+              id: user.user_id,
+              name: user.name,
+            }))}
+            value={selectedUserId}
+            onValueChange={setSelectedUserId}
+            placeholder="직원을 선택하세요"
+            label="직원 선택"
+          />
 
           {/* 선택된 사용자 정보 */}
           {leaveStatus && selectedUser && (

@@ -39,7 +39,7 @@ export function NightShiftRecordsSection({
   ) => {
     if (
       !confirm(
-        `${employeeName}의 ${workDate} 야간 근무 기록을 삭제하시겠습니까?`,
+        `${employeeName}의 ${workDate} 야간 진료 기록을 삭제하시겠습니까?`,
       )
     ) {
       return
@@ -48,7 +48,7 @@ export function NightShiftRecordsSection({
     const result = await deleteNightShiftRecordByDate(employeeId, workDate)
 
     if (result.success) {
-      onSuccess('야간 근무 기록이 삭제되었습니다.')
+      onSuccess('야간 진료 기록이 삭제되었습니다.')
       onReload()
     } else {
       onError(result.message)
@@ -61,15 +61,15 @@ export function NightShiftRecordsSection({
     <Card>
       <Flex direction="column" gap="3">
         <Flex justify="between" align="center">
-          <Heading size="4">야간 근무 기록</Heading>
+          <Heading size="4">야간 진료 기록</Heading>
         </Flex>
 
         <Text size="2" color="gray">
-          최근 {MAX_RECENT_RECORDS}개의 야간 근무 기록을 표시합니다.
+          최근 {MAX_RECENT_RECORDS}개의 야간 진료 기록을 표시합니다.
         </Text>
 
         {recentRecords.length === 0 ? (
-          <Text color="gray">등록된 야간 근무 기록이 없습니다.</Text>
+          <Text color="gray">등록된 야간 진료 기록이 없습니다.</Text>
         ) : (
           <Box>
             <Table.Root>

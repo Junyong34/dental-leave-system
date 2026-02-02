@@ -43,7 +43,7 @@ export function EmployeeTagInput({
       }
       setInputValue('')
     },
-    [value, onChange]
+    [value, onChange],
   )
 
   const handleKeyDown = useCallback(
@@ -67,7 +67,7 @@ export function EmployeeTagInput({
         onChange(value.slice(0, -1))
       }
     },
-    [inputValue, value, addTokens, onChange]
+    [inputValue, value, addTokens, onChange],
   )
 
   const handleBlur = useCallback(() => {
@@ -87,7 +87,7 @@ export function EmployeeTagInput({
 
       setInputValue(nextValue)
     },
-    [addTokens]
+    [addTokens],
   )
 
   const handleCompositionStart = useCallback(() => {
@@ -103,14 +103,14 @@ export function EmployeeTagInput({
         addTokens(event.currentTarget.value)
       }
     },
-    [addTokens]
+    [addTokens],
   )
 
   const handleRemove = useCallback(
     (name: string) => {
       onChange(value.filter((item) => item !== name))
     },
-    [value, onChange]
+    [value, onChange],
   )
 
   return (

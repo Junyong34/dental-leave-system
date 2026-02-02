@@ -19,9 +19,9 @@ export default function NightShiftManagementPage() {
     <div className="rt-r-p-6" style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <Flex direction="column" gap="4">
         <div>
-          <h1 className="rt-r-mb-2">야간 근무 관리</h1>
+          <h1 className="rt-r-mb-2">야간 진료 관리</h1>
           <Text color="gray">
-            야간 진료 요일 설정, 직원 관리, 야간 근무 기록을 관리합니다.
+            야간 진료 요일 설정, 직원 관리, 야간 진료 기록을 관리합니다.
           </Text>
         </div>
 
