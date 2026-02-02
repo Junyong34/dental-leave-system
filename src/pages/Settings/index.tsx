@@ -1,5 +1,5 @@
 import { Box, Button, Flex, Heading, Separator, Text } from '@radix-ui/themes'
-import { History, Settings as SettingsIcon, UserCog } from 'lucide-react'
+import { History, Moon, Settings as SettingsIcon, UserCog } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
 
 export default function Settings() {
@@ -19,6 +19,11 @@ export default function Settings() {
       label: '유저 히스토리 데이터 조회',
       path: '/settings/history',
       icon: <History size={18} />,
+    },
+    {
+      label: '야간 근무 관리',
+      path: '/settings/night-shift',
+      icon: <Moon size={18} />,
     },
   ]
 

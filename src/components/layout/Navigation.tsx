@@ -4,6 +4,7 @@ import {
   FileText,
   History,
   LayoutDashboard,
+  Moon,
   Settings,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router'
@@ -49,6 +50,7 @@ const navItems: NavItem[] = [
     requiredRoles: ['ADMIN'],
   },
   { to: '/history', label: '연차 내역', icon: History },
+  { to: '/night-shift-stats', label: '야간 근무', icon: Moon },
   { to: '/settings', label: '설정', icon: Settings, requiredRoles: ['ADMIN'] },
 ]
 

@@ -26,8 +26,11 @@ export default function RoleRoute({
   const [denyMessage, setDenyMessage] = useState<string | null>(null)
   const userId = useAuthStore((state) => state.user?.id)
   const loading = useAuthStore((state) => state.loading)
-  const { user, loading: profileLoading, error: profileError } =
-    useUserProfile()
+  const {
+    user,
+    loading: profileLoading,
+    error: profileError,
+  } = useUserProfile()
   const noticeSentRef = useRef(false)
   const rolesKey = requiredRoles.join(',')
 
@@ -45,9 +48,7 @@ export default function RoleRoute({
 
     if (profileError) {
       setStatus('denied')
-      setDenyMessage(
-        profileError || '사용자 권한 정보를 불러오지 못했습니다.',
-      )
+      setDenyMessage(profileError || '사용자 권한 정보를 불러오지 못했습니다.')
       return
     }
 

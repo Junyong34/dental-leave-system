@@ -76,7 +76,11 @@ export function LeaveEventDialog({
                 border: '1px solid var(--gray-a4)',
               }}
             >
-              <Text size="2" weight="medium" style={{ color: 'var(--gray-11)' }}>
+              <Text
+                size="2"
+                weight="medium"
+                style={{ color: 'var(--gray-11)' }}
+              >
                 사용자
               </Text>
               <Text size="3" weight="bold">
@@ -95,7 +99,11 @@ export function LeaveEventDialog({
                 border: '1px solid var(--gray-a4)',
               }}
             >
-              <Text size="2" weight="medium" style={{ color: 'var(--gray-11)' }}>
+              <Text
+                size="2"
+                weight="medium"
+                style={{ color: 'var(--gray-11)' }}
+              >
                 날짜
               </Text>
               <Text size="3" weight="medium">
@@ -114,7 +122,11 @@ export function LeaveEventDialog({
                 border: '1px solid var(--gray-a4)',
               }}
             >
-              <Text size="2" weight="medium" style={{ color: 'var(--gray-11)' }}>
+              <Text
+                size="2"
+                weight="medium"
+                style={{ color: 'var(--gray-11)' }}
+              >
                 연차 종류
               </Text>
               <Text size="3" weight="medium">
@@ -133,7 +145,11 @@ export function LeaveEventDialog({
                 border: '1px solid var(--gray-a4)',
               }}
             >
-              <Text size="2" weight="medium" style={{ color: 'var(--gray-11)' }}>
+              <Text
+                size="2"
+                weight="medium"
+                style={{ color: 'var(--gray-11)' }}
+              >
                 차감량
               </Text>
               <Text size="3" weight="medium">
@@ -152,7 +168,11 @@ export function LeaveEventDialog({
                 border: '1px solid var(--gray-a4)',
               }}
             >
-              <Text size="2" weight="medium" style={{ color: 'var(--gray-11)' }}>
+              <Text
+                size="2"
+                weight="medium"
+                style={{ color: 'var(--gray-11)' }}
+              >
                 상태
               </Text>
               <Box
