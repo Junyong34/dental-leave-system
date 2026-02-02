@@ -154,15 +154,6 @@ export default function Login() {
                 <LogIn size={16} />
                 {isSubmitting ? '로그인 중...' : '로그인'}
               </Button>
-
-              <Box className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <Text size="1" align="center" className="text-gray-600">
-                  테스트 계정:{' '}
-                  <span className="font-semibold">
-                    {/*admin@support.com / admin!2*/}
-                  </span>
-                </Text>
-              </Box>
             </Flex>
           </form>
         </Flex>
