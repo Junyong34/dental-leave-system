@@ -8,6 +8,7 @@
 -- 2. 연차 데이터는 INTEGER 타입 (0.5일 = 5, 1일 = 10)
 -- 3. RLS(Row Level Security) 정책 적용
 -- 4. sampleData.ts 구조와 완벽 호환
+-- 5. 야간 근무 관리: employees 테이블로 회원가입 없는 직원 관리
 -- ================================================================
 
 -- ================================================================
@@ -898,3 +899,285 @@ WHERE u.status = 'ACTIVE';
 COMMENT ON VIEW leave_balances_display IS '화면 표시용 연차 잔액 (DECIMAL 변환)';
 COMMENT ON VIEW leave_reservations_display IS '화면 표시용 연차 예약 (DECIMAL 변환)';
 COMMENT ON VIEW leave_history_display IS '화면 표시용 연차 이력 (DECIMAL 변환)';
+
+
+-- ================================================================
+-- 야간 근무 관리 (Night Shift Management)
+-- ================================================================
+
+-- ================================================================
+-- 5. EMPLOYEES 테이블
+-- ================================================================
+-- 회원가입 없이 직원 추가 가능, 추후 user_id로 연동
+
+CREATE TABLE IF NOT EXISTS employees (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 인덱스
+CREATE INDEX idx_employees_user_id ON employees(user_id);
+CREATE INDEX idx_employees_status ON employees(status);
+CREATE INDEX idx_employees_name ON employees(name);
+
+-- 코멘트
+COMMENT ON TABLE employees IS '직원 정보 (회원가입 없이도 추가 가능)';
+COMMENT ON COLUMN employees.id IS '직원 고유 ID';
+COMMENT ON COLUMN employees.name IS '직원 이름';
+COMMENT ON COLUMN employees.user_id IS 'auth.users(id)와 연결 (nullable, 추후 연동)';
+COMMENT ON COLUMN employees.status IS '재직 상태 (ACTIVE/INACTIVE)';
+
+
+-- ================================================================
+-- 6. NIGHT_SHIFT_CONFIG 테이블
+-- ================================================================
+-- 야간 진료 요일 설정 (동적 관리)
+
+CREATE TABLE IF NOT EXISTS night_shift_config (
+  id BIGSERIAL PRIMARY KEY,
+  weekday TEXT NOT NULL CHECK (weekday IN ('MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT')),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(weekday)
+);
+
+-- 인덱스
+CREATE INDEX idx_night_shift_config_is_active ON night_shift_config(is_active);
+
+-- 코멘트
+COMMENT ON TABLE night_shift_config IS '야간 진료 요일 설정';
+COMMENT ON COLUMN night_shift_config.weekday IS '요일 (MON~SAT)';
+COMMENT ON COLUMN night_shift_config.is_active IS '활성화 여부';
+
+
+-- ================================================================
+-- 7. NIGHT_SHIFT_RECORDS 테이블
+-- ================================================================
+-- 직원별 야간 근무 기록
+
+CREATE TABLE IF NOT EXISTS night_shift_records (
+  id BIGSERIAL PRIMARY KEY,
+  employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  work_date DATE NOT NULL,
+  weekday TEXT NOT NULL CHECK (weekday IN ('MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(employee_id, work_date)
+);
+
+-- 인덱스
+CREATE INDEX idx_night_shift_records_employee_id ON night_shift_records(employee_id);
+CREATE INDEX idx_night_shift_records_work_date ON night_shift_records(work_date);
+CREATE INDEX idx_night_shift_records_weekday ON night_shift_records(weekday);
+CREATE INDEX idx_night_shift_records_employee_date ON night_shift_records(employee_id, work_date DESC);
+
+-- 코멘트
+COMMENT ON TABLE night_shift_records IS '직원별 야간 근무 기록';
+COMMENT ON COLUMN night_shift_records.employee_id IS '직원 ID (employees.id 참조)';
+COMMENT ON COLUMN night_shift_records.work_date IS '야간 근무 날짜';
+COMMENT ON COLUMN night_shift_records.weekday IS '요일 (통계 분석용)';
+
+
+-- ================================================================
+-- 야간 근무 RPC 함수
+-- ================================================================
+
+-- 직원별 야간 근무 통계 조회 (월별/연도별)
+CREATE OR REPLACE FUNCTION public.get_night_shift_stats(
+  p_employee_id BIGINT,
+  p_year INTEGER,
+  p_month INTEGER DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_stats jsonb;
+BEGIN
+  -- Access control: admin, view, or authenticated
+  IF NOT (is_admin() OR is_view() OR auth.uid() IS NOT NULL) THEN
+    RAISE EXCEPTION 'Not authorized.';
+  END IF;
+
+  SELECT COALESCE(jsonb_object_agg(weekday, count), '{}'::jsonb)
+  INTO v_stats
+  FROM (
+    SELECT
+      weekday,
+      COUNT(*)::integer as count
+    FROM night_shift_records
+    WHERE employee_id = p_employee_id
+      AND EXTRACT(YEAR FROM work_date) = p_year
+      AND (p_month IS NULL OR EXTRACT(MONTH FROM work_date) = p_month)
+    GROUP BY weekday
+  ) t;
+
+  RETURN v_stats;
+END;
+$$;
+
+-- 전체 직원 야간 근무 통계 조회
+CREATE OR REPLACE FUNCTION public.get_all_employees_night_shift_stats(
+  p_year INTEGER,
+  p_month INTEGER DEFAULT NULL
+)
+RETURNS TABLE (
+  employee_id BIGINT,
+  employee_name TEXT,
+  user_id UUID,
+  stats JSONB
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Access control: admin, view, or authenticated
+  IF NOT (is_admin() OR is_view() OR auth.uid() IS NOT NULL) THEN
+    RAISE EXCEPTION 'Not authorized.';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    e.id,
+    e.name,
+    e.user_id,
+    COALESCE(
+      (
+        SELECT jsonb_object_agg(weekday, count)
+        FROM (
+          SELECT
+            nsr.weekday,
+            COUNT(*)::integer as count
+          FROM night_shift_records nsr
+          WHERE nsr.employee_id = e.id
+            AND EXTRACT(YEAR FROM nsr.work_date) = p_year
+            AND (p_month IS NULL OR EXTRACT(MONTH FROM nsr.work_date) = p_month)
+          GROUP BY nsr.weekday
+        ) t
+      ),
+      '{}'::jsonb
+    ) as stats
+  FROM employees e
+  WHERE e.status = 'ACTIVE'
+  ORDER BY e.name;
+END;
+$$;
+
+-- 야간 근무 기록 생성 (weekday 자동 계산)
+CREATE OR REPLACE FUNCTION public.create_night_shift_record(
+  p_employee_id BIGINT,
+  p_work_date DATE
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_weekday TEXT;
+BEGIN
+  -- Access control: admin only
+  IF NOT is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  -- Calculate weekday from work_date
+  v_weekday := CASE EXTRACT(DOW FROM p_work_date)
+    WHEN 0 THEN 'SUN'
+    WHEN 1 THEN 'MON'
+    WHEN 2 THEN 'TUE'
+    WHEN 3 THEN 'WED'
+    WHEN 4 THEN 'THU'
+    WHEN 5 THEN 'FRI'
+    WHEN 6 THEN 'SAT'
+  END;
+
+  -- Insert record
+  INSERT INTO night_shift_records (employee_id, work_date, weekday)
+  VALUES (p_employee_id, p_work_date, v_weekday)
+  ON CONFLICT (employee_id, work_date) DO NOTHING;
+
+  RETURN jsonb_build_object('success', true, 'message', 'Night shift record created.');
+EXCEPTION
+  WHEN foreign_key_violation THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Employee not found.');
+  WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'message', SQLERRM);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_night_shift_stats(BIGINT, INTEGER, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_all_employees_night_shift_stats(INTEGER, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_night_shift_record(BIGINT, DATE) TO authenticated;
+
+
+-- ================================================================
+-- 야간 근무 RLS 정책
+-- ================================================================
+
+-- employees
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "employees_select" ON employees
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "employees_insert" ON employees
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "employees_update" ON employees
+  FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
+
+CREATE POLICY "employees_delete" ON employees
+  FOR DELETE USING (is_admin());
+
+-- night_shift_config
+ALTER TABLE night_shift_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "night_shift_config_select" ON night_shift_config
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "night_shift_config_insert" ON night_shift_config
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "night_shift_config_update" ON night_shift_config
+  FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
+
+CREATE POLICY "night_shift_config_delete" ON night_shift_config
+  FOR DELETE USING (is_admin());
+
+-- night_shift_records
+ALTER TABLE night_shift_records ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "night_shift_records_select" ON night_shift_records
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "night_shift_records_insert" ON night_shift_records
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "night_shift_records_update" ON night_shift_records
+  FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
+
+CREATE POLICY "night_shift_records_delete" ON night_shift_records
+  FOR DELETE USING (is_admin());
+
+
+-- ================================================================
+-- 야간 근무 트리거: updated_at 자동 갱신
+-- ================================================================
+
+CREATE TRIGGER update_employees_updated_at
+  BEFORE UPDATE ON employees
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_night_shift_config_updated_at
+  BEFORE UPDATE ON night_shift_config
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

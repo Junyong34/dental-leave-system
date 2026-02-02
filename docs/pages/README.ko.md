@@ -12,6 +12,8 @@
 - `/history` -> LeaveHistory (placeholder)
 - `/calendar` -> LeaveCalendar ✅
 - `/settings` -> Settings (placeholder)
+- `/night-shift-stats` -> NightShiftStats (구현 예정)
+- `/settings/night-shift` -> NightShiftManagement (구현 예정)
 
 ## 라우트: `/` (Dashboard)
 
@@ -145,6 +147,34 @@
 - 계획 RPC + env:
   - `update_user_profile()`, `get_system_settings()`, `update_system_settings()`
   - `VITE_ENABLE_USER_MANAGEMENT`
+
+## 라우트: `/night-shift-stats` (NightShiftStats)
+
+- 목적: 직원별 야간 근무 요일 통계를 확인하여 공평한 배분 지원.
+- 상태: 구현 예정.
+- 핵심 기능:
+  - 연도/월/직원 필터링
+  - 직원별 요일 통계 카드 (막대 그래프)
+  - 가장 많이 근무한 요일 하이라이트
+  - CSV 내보내기
+- 계획 API:
+  - `getNightShiftStats(employeeId, year, month?)` - 개별 직원 통계
+  - `getAllEmployeesStats(year, month?)` - 전체 직원 통계
+- 참고: [NightShift-PRD.md](./NightShift-PRD.md)
+
+## 라우트: `/settings/night-shift` (NightShiftManagement)
+
+- 목적: 야간 요일 설정 및 직원 야간 근무 기록 관리 (ADMIN 전용).
+- 상태: 구현 예정.
+- 핵심 기능:
+  - 야간 요일 설정: 요일별 활성화/비활성화 토글
+  - 직원 관리: 회원가입 없이 직원 추가, 추후 계정 연동
+  - 야간 근무 기록: 날짜별 직원 배정 및 기록 관리
+- 계획 API:
+  - employees: `getAllEmployees()`, `createEmployee()`, `updateEmployee()`, `deleteEmployee()`, `linkEmployeeToUser()`
+  - config: `getNightShiftConfig()`, `updateNightShiftConfig()`
+  - records: `createNightShiftRecord()`, `deleteNightShiftRecord()`, `getNightShiftRecords()`
+- 참고: [NightShift-PRD.md](./NightShift-PRD.md)
 
 ## 공유 타입 (페이지 README 기준)
 

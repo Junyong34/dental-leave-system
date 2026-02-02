@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      employees: {
+        Row: {
+          id: number
+          name: string
+          user_id: string | null
+          status: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: number
+          name: string
+          user_id?: string | null
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: number
+          name?: string
+          user_id?: string | null
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      night_shift_config: {
+        Row: {
+          id: number
+          weekday: string
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: number
+          weekday: string
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: number
+          weekday?: string
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      night_shift_records: {
+        Row: {
+          id: number
+          employee_id: number
+          work_date: string
+          weekday: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: number
+          employee_id: number
+          work_date: string
+          weekday: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: number
+          employee_id?: number
+          work_date?: string
+          weekday?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'night_shift_records_employee_id_fkey'
+            columns: ['employee_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       leave_balances: {
         Row: {
           created_at: string | null
@@ -356,6 +439,36 @@ export type Database = {
           success: boolean
           message: string
           reservation_id?: number
+        }
+      }
+      get_night_shift_stats: {
+        Args: {
+          p_employee_id: number
+          p_year: number
+          p_month?: number | null
+        }
+        Returns: Json
+      }
+      get_all_employees_night_shift_stats: {
+        Args: {
+          p_year: number
+          p_month?: number | null
+        }
+        Returns: {
+          employee_id: number
+          employee_name: string
+          user_id: string | null
+          stats: Json
+        }[]
+      }
+      create_night_shift_record: {
+        Args: {
+          p_employee_id: number
+          p_work_date: string
+        }
+        Returns: {
+          success: boolean
+          message: string
         }
       }
     }
