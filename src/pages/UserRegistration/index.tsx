@@ -19,7 +19,7 @@ export default function UserRegistration() {
   const [userId, setUserId] = useState('')
   const [name, setName] = useState('')
   const [joinDate, setJoinDate] = useState('')
-  const [groupId, setGroupId] = useState('')
+  const [groupId, setGroupId] = useState('W001')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [error, setError] = useState('')
@@ -242,6 +242,7 @@ export default function UserRegistration() {
                 <TextField.Root
                   size="3"
                   placeholder="예: G01"
+                  readOnly
                   value={groupId}
                   onChange={(e) => setGroupId(e.target.value)}
                   disabled={isLoadingUser || isSubmitting}
