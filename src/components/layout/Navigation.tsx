@@ -1,12 +1,15 @@
+import { Dialog, IconButton } from '@radix-ui/themes'
 import {
   Calendar,
   CheckCircle,
   FileText,
   History,
   LayoutDashboard,
+  Menu,
   Moon,
   Settings,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import useUserProfile from '@/hooks/useUserProfile'
 import type { UserRole } from '@/types/leave'
@@ -58,6 +61,8 @@ export default function Navigation() {
   const location = useLocation()
   const { user, loading } = useUserProfile()
   const role = user?.role ?? null
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
 
   const isActive = (path: string) => {
     return location.pathname === path
@@ -69,34 +74,148 @@ export default function Navigation() {
     return hasRequiredRole(role, requiredRoles)
   }
 
-  return (
-    <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
-      {navItems
-        .filter((item) => canAccess(item.requiredRoles))
-        .map((item) => {
-          const Icon = item.icon
-          const active = isActive(item.to)
+  const visibleItems = navItems.filter((item) => canAccess(item.requiredRoles))
 
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1200px)')
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsDesktop(event.matches)
+    }
+    setIsDesktop(media.matches)
+    media.addEventListener('change', handleChange)
+    return () => media.removeEventListener('change', handleChange)
+  }, [])
+
+  useEffect(() => {
+    if (isDesktop && isMobileMenuOpen) {
+      setIsMobileMenuOpen(false)
+    }
+  }, [isDesktop, isMobileMenuOpen])
+
+  const renderNavLinks = (variant: 'desktop' | 'mobile') => {
+    return visibleItems.map((item) => {
+      const Icon = item.icon
+      const active = isActive(item.to)
+      const isMobile = variant === 'mobile'
+
+      return (
+        <Link
+          key={item.to}
+          to={item.to}
+          onClick={() => {
+            if (isMobile) setIsMobileMenuOpen(false)
+          }}
+          style={{
+            ...navLinkStyle,
+            width: isMobile ? '100%' : 'auto',
+            justifyContent: isMobile ? 'space-between' : 'flex-start',
+            padding: isMobile ? '10px 12px' : navLinkStyle.padding,
+            borderRadius: isMobile ? '8px' : undefined,
+            backgroundColor: isMobile && active ? '#eff6ff' : 'transparent',
+            color: active ? '#2563eb' : '#4b5563',
+          }}
+        >
+          <span
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          >
+            <Icon size={18} />
+            <span>{item.label}</span>
+          </span>
+          {!isMobile && (
+            <div
               style={{
-                ...navLinkStyle,
-                color: active ? '#2563eb' : '#4b5563',
+                ...indicatorStyle,
+                backgroundColor: active ? '#2563eb' : 'transparent',
+              }}
+            />
+          )}
+        </Link>
+      )
+    })
+  }
+
+  return (
+    <nav>
+      {isDesktop ? (
+        <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+          {navItems
+            .filter((item) => canAccess(item.requiredRoles))
+            .map((item) => {
+              const Icon = item.icon
+              const active = isActive(item.to)
+
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  style={{
+                    ...navLinkStyle,
+                    color: active ? '#2563eb' : '#4b5563',
+                  }}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                  <div
+                    style={{
+                      ...indicatorStyle,
+                      backgroundColor: active ? '#2563eb' : 'transparent',
+                    }}
+                  />
+                </Link>
+              )
+            })}
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              borderBottom: '1px solid #e5e7eb',
+              padding: '8px 12px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              display: 'flex',
+            }}
+          >
+            <IconButton
+              variant="ghost"
+              aria-label="메뉴 열기"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu size={18} />
+            </IconButton>
+          </div>
+
+          <Dialog.Root
+            open={isMobileMenuOpen}
+            onOpenChange={setIsMobileMenuOpen}
+          >
+            <Dialog.Content
+              style={{
+                width: '85vw',
+                maxWidth: '320px',
+                height: '100vh',
+                margin: 0,
+                borderRadius: 0,
+                position: 'fixed',
+                top: 0,
+                right: 0,
               }}
             >
-              <Icon size={18} />
-              <span>{item.label}</span>
+              <Dialog.Title>메뉴</Dialog.Title>
               <div
                 style={{
-                  ...indicatorStyle,
-                  backgroundColor: active ? '#2563eb' : 'transparent',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  marginTop: 16,
                 }}
-              />
-            </Link>
-          )
-        })}
-    </div>
+              >
+                {renderNavLinks('mobile')}
+              </div>
+            </Dialog.Content>
+          </Dialog.Root>
+        </>
+      )}
+    </nav>
   )
 }
