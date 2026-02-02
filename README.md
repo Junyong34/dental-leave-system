@@ -1,133 +1,77 @@
 # 더와이즈 치과병원 연차 관리 시스템
 
+> **💡 이 문서는**: 프로젝트를 **빠르게 시작**하기 위한 가이드입니다.
+>
+> **상세한 정보**는 아래 문서들을 참조하세요.
+
 더와이즈 치과병원 직원(약 80명)의 연차를 효율적으로 관리하기 위한 웹 기반 시스템입니다.
 
-## 관련 문서
+## 📚 문서 링크
 
-- [제품 요구 사항 정의서 (PRD.md)](PRD.md)
-- [데이터베이스 스키마 상세](src/lib/supabase/schema.sql)
+### 개발자를 위한 문서
+- **[AGENT.md](AGENT.md)** - 프로젝트 전체 구조 및 아키텍처 (마스터 문서)
+- **[CLAUDE.md](CLAUDE.md)** - Claude Code 개발 가이드
+- **[src/lib/supabase/schema.sql](src/lib/supabase/schema.sql)** - 완전한 데이터베이스 스키마
+
+### 비즈니스 & 기획 문서
+- **[PRD.md](PRD.md)** - 제품 요구 사항 정의서
+
+### 기능별 상세 문서
+- **[docs/pages/ROUTES.md](docs/pages/ROUTES.md)** - 전체 라우트 인덱스
+- **[docs/pages/LeaveCalendar-PRD.md](docs/pages/LeaveCalendar-PRD.md)** - 캘린더 기능 상세
+- **[docs/pages/NightShift-PRD.md](docs/pages/NightShift-PRD.md)** - 야간 진료 기능 상세
+
+---
 
 ## 주요 기능
 
-- **대시보드**: 팀원별 연차 현황 조회 및 통계 (사용/예약/잔여 연차)
-- **연차 신청**: 종일/반차(오전/오후) 신청
-- **연차 승인**: 관리자 승인 기능
-- **사용 이력**: 개인별 연차 사용 내역 조회
+- **연차 관리**: 신청/승인/취소 with FIFO 차감
+- **캘린더 뷰**: FullCalendar 기반 시각화
+- **야간 진료 통계**: 직원별 야간 근무 요일 통계
+- **대시보드**: 팀원별 연차 현황 (ADMIN)
 - **권한 관리**: ADMIN/USER/VIEW 역할 기반 접근 제어
-- **인증 시스템**: Supabase 기반 로그인/로그아웃
+
+**상세 기능 설명**: [PRD.md](PRD.md) 참조
 
 ## 기술 스택
 
-### Frontend
-- **React** 19.2.0 + **TypeScript** 5.9.3
-- **Vite** 6.0.0 (빌드 도구)
-- **React Router** 7.13.0 (라우팅)
-- **Zustand** 5.0.10 (전역 상태 관리)
+- **Frontend**: React 19 + TypeScript 5.9 + Vite 6
+- **Backend**: Supabase (PostgreSQL + Auth + RLS)
+- **UI**: Tailwind CSS + Radix UI
+- **Code Quality**: Biome (NOT ESLint/Prettier)
 
-### Backend & Database
-- **Supabase** - BaaS (Backend as a Service)
-  - PostgreSQL 데이터베이스
-  - 인증 시스템 (Auth)
-  - Row Level Security (RLS)
-  - RPC 함수 지원
+**완전한 기술 스택**: [AGENT.md - Tech Stack](AGENT.md#기술-스택) 참조
 
-### UI & Styling
-- **Radix UI** 3.2.1 (컴포넌트)
-- **Tailwind CSS** 4.1.18
-- **Lucide React** 0.562.0 (아이콘)
-
-### 개발 도구
-- **Biome** 2.3.11 (린트/포맷터)
-- **Vitest** 4.0.18 (테스트)
-- **React Hook Form** 7.71.1 (폼 관리)
-
-## 프로젝트 구조
+## 프로젝트 구조 (요약)
 
 ```
 src/
-├── components/          # UI 컴포넌트
-│   ├── auth/           # 인증 관련 (AuthProvider, ProtectedRoute)
-│   ├── dashboard/      # 대시보드 컴포넌트 (LeaveHistoryModal 등)
-│   └── layout/         # 레이아웃 (Header, Navigation, UserProfile)
-├── lib/
-│   └── supabase/       # Supabase 통합
-│       ├── api/        # API 함수 (auth, leave, user)
-│       ├── types/      # 데이터베이스 타입 정의
-│       ├── client.ts   # Supabase 클라이언트
-│       └── config.ts   # 환경 설정
-├── pages/              # 페이지 컴포넌트
-│   ├── Dashboard/      # 대시보드 (팀원 연차 현황)
-│   ├── LeaveRequest/   # 연차 신청
-│   ├── LeaveApproval/  # 연차 승인
-│   ├── LeaveHistory/   # 사용 이력
-│   ├── Settings/       # 설정
-│   └── Login/          # 로그인
-├── router/             # 라우터 설정
-├── store/              # Zustand 스토어 (authStore)
-├── types/              # TypeScript 타입 정의
-├── utils/              # 유틸리티 함수
-└── data/               # 샘플 데이터
+├── components/auth/    # AuthProvider, ProtectedRoute, RoleRoute
+├── lib/supabase/       # Supabase 통합 (client, API, schema)
+├── pages/              # 페이지 컴포넌트 (Dashboard, LeaveRequest 등)
+├── store/              # Zustand authStore
+└── router/             # React Router 설정
 ```
 
-## 데이터베이스 구조
+**완전한 프로젝트 구조**: [AGENT.md - Project Structure](AGENT.md#프로젝트-구조) 참조
+
+## 데이터베이스 구조 (요약)
 
 ### 주요 테이블
+- `users` - 사용자 프로필 (role, status)
+- `leave_balances` - 연도별 연차 (INTEGER × 10 저장)
+- `leave_reservations` - 연차 신청
+- `leave_history` - 사용 이력 (FIFO tracking)
+- `employees` - 야간 진료 직원 (user_id nullable)
+- `night_shift_records` - 야간 근무 기록
 
-#### `users` - 사용자 정보
-- `user_id` (PK): 사용자 ID
-- `name`: 이름
-- `join_date`: 입사일
-- `group_id`: 소속 그룹
-- `role`: 권한 (ADMIN/USER/VIEW)
-- `status`: 상태 (ACTIVE/INACTIVE/RESIGNED)
+### 주요 RPC 함수
+- `get_user_leave_status(user_id)` - 연차 현황 조회
+- `reserve_leave(user_id, date, type, session)` - 연차 신청
+- `approve_leave(reservation_id)` - 승인 + FIFO 차감
+- `get_night_shift_stats(employee_id, year, month)` - 야간 진료 통계
 
-#### `leave_balances` - 연차 잔액 (연도별)
-- `user_id`, `year` (PK): 사용자 ID + 연도
-- `total`: 해당 연도 발생 연차 (0.5 단위)
-- `used`: 사용한 연차
-- `remain`: 잔여 연차
-- `expire_at`: 만료일
-
-#### `leave_reservations` - 연차 예약
-- `id` (PK): 예약 ID
-- `user_id`: 사용자 ID
-- `date`: 날짜
-- `type`: FULL(종일) / HALF(반차)
-- `session`: AM(오전) / PM(오후) / null
-- `amount`: 1.0 or 0.5
-- `status`: RESERVED / USED / CANCELLED
-
-#### `leave_history` - 연차 사용 이력
-- `id` (PK): 이력 ID
-- `user_id`: 사용자 ID
-- `date`: 사용일
-- `type`, `session`, `amount`: 연차 정보
-- `weekday`: 요일
-- `source_year`: 차감된 연차의 발생 연도 (FIFO)
-
-### RPC 함수
-
-- `get_user_leave_status(p_user_id)`: 사용자 연차 현황 조회
-- `reserve_leave(p_user_id, p_date, p_type, p_session)`: 연차 신청
-- `approve_leave(p_reservation_id)`: 연차 승인 (FIFO 차감)
-- `cancel_leave(p_reservation_id)`: 연차 취소
-
-## 연차 정책
-
-### 기본 규칙
-- **기본 연차**: 연 15일
-- **근속 가산**: 2년 초과 시마다 +1일, 최대 25일
-- **사용 단위**: 1일(종일) 또는 0.5일(반차)
-- **반차 구분**: 오전(AM) / 오후(PM)
-
-### 이월 및 차감
-- **이월**: 미사용 연차는 다음 해로 이월 (최대 2년 보관)
-- **차감 방식**: FIFO (만료일이 빠른 연차부터 차감)
-
-### 사용 제한
-- 일요일 사용 불가
-- 동일 그룹 동일 날짜 다수 제한
-- 공휴일 근무 시 연차 1.5일 추가 지급
+**완전한 데이터베이스 스키마**: [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql) 참조
 
 ## 환경 설정
 

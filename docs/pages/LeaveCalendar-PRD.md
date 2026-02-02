@@ -151,7 +151,7 @@ src/pages/LeaveCalendar/
 - `package.json` - fullCalendar 패키지 추가 ✅
 - `src/router/index.tsx` - `/calendar` 라우트 추가
 - `src/components/layout/Navigation.tsx` - 캘린더 메뉴 추가
-- `docs/pages/README.ko.md` - 캘린더 페이지 추가
+- `docs/pages/ROUTES.md` - 캘린더 페이지 추가
 - `src/lib/supabase/api/leave.ts` - `getAllLeaveHistory`, `getAllLeaveReservations` 이미 구현됨 ✅
 
 ## 8. 색상 할당 알고리즘

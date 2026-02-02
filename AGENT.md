@@ -1,8 +1,105 @@
 # 치과병원 연차 관리 시스템 - 프로젝트 구조
 
+> **💡 이 문서는**: 프로젝트 전체 구조와 아키텍처를 설명하는 **마스터 문서**입니다.
+>
+> 개발자와 AI가 프로젝트를 이해하고 작업하기 위한 중앙 허브 역할을 합니다.
+
 ## 📋 프로젝트 개요
 
 더와이즈 치과병원의 약 80명 직원을 위한 웹 기반 연차 관리 시스템입니다. 법적 기준을 준수하며 연차 신청, 승인, 통계 관리, 야간 진료 기록 등의 기능을 제공합니다.
+
+## 📚 관련 문서 가이드
+
+프로젝트 문서는 목적에 따라 계층적으로 구성되어 있습니다. 필요한 정보에 따라 적절한 문서를 참조하세요.
+
+### 개발자를 위한 문서
+
+#### [CLAUDE.md](CLAUDE.md) - Claude Code AI 개발 가이드
+**대상**: Claude Code로 개발하는 AI 개발자
+**내용**:
+- 개발 명령어 및 환경 설정
+- 코딩 컨벤션 및 스타일 가이드
+- 중요한 구현 세부사항 (FIFO 로직, INTEGER 기반 저장 등)
+- 일반적인 함정(Common Pitfalls) 및 주의사항
+- RPC 함수 및 API 빠른 참조
+
+**언제 읽나요?**: 코드를 작성하거나 수정할 때, 특정 API나 패턴을 찾을 때
+
+---
+
+### 비즈니스 & 기획 문서
+
+#### [PRD.md](PRD.md) - 제품 요구 사항 정의서
+**대상**: 제품 기획자, 비즈니스 분석가
+**내용**:
+- 비즈니스 요구사항 및 사용자 스토리
+- 주요 기능 명세 (연차 신청/승인/취소)
+- 권한 체계 (ADMIN/USER/VIEW)
+- 데이터 정책 (INTEGER 기반 저장, FIFO 원칙)
+- 보안 정책 (RLS)
+
+**언제 읽나요?**: 비즈니스 로직을 이해하거나, 기능 요구사항을 확인할 때
+
+---
+
+### 사용자 문서
+
+#### [README.md](README.md) - 프로젝트 빠른 시작 가이드
+**대상**: 처음 프로젝트를 접하는 개발자
+**내용**:
+- 프로젝트 소개 및 주요 기능 (간략)
+- 설치 및 실행 방법
+- 환경 변수 설정
+- 기본 API 사용 예시
+- 타입 생성 방법
+
+**언제 읽나요?**: 프로젝트를 처음 시작할 때, 빠르게 실행해보고 싶을 때
+
+---
+
+### 기능별 상세 문서
+
+#### [docs/pages/ROUTES.md](docs/pages/ROUTES.md) - 전체 라우트 인덱스
+**대상**: 특정 페이지 기능을 찾는 개발자
+**내용**: 모든 라우트의 목적, 권한, 주요 기능을 테이블 형식으로 빠르게 참조
+
+#### [docs/pages/LeaveCalendar-PRD.md](docs/pages/LeaveCalendar-PRD.md) - 캘린더 기능 상세
+**대상**: 캘린더 기능을 작업하는 개발자
+**내용**: FullCalendar 구현, 필터링, 이벤트 처리 등 상세 명세
+
+#### [docs/pages/NightShift-PRD.md](docs/pages/NightShift-PRD.md) - 야간 진료 기능 상세
+**대상**: 야간 진료 기능을 작업하는 개발자
+**내용**: employees 테이블, 통계 RPC 함수, UI 구현 등 상세 명세
+
+#### [docs/pages/NightShift-SETUP.md](docs/pages/NightShift-SETUP.md) - 야간 진료 설정 가이드
+**대상**: 야간 진료 기능을 설정하는 관리자/개발자
+**내용**: 데이터베이스 설정, 초기 데이터 입력 등 설정 가이드
+
+---
+
+### 데이터베이스 스키마
+
+#### [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql) - 완전한 DB 스키마
+**대상**: 데이터베이스 구조를 이해하려는 개발자
+**내용**:
+- 모든 테이블 정의 (users, leave_balances, leave_reservations, leave_history, employees, night_shift_*)
+- RLS 정책 전체
+- RPC 함수 전체 (reserve_leave, approve_leave, get_night_shift_stats 등)
+- 트리거 및 제약조건
+
+**언제 읽나요?**: SQL 레벨에서 데이터 구조를 이해하거나 수정할 때
+
+---
+
+## 문서 탐색 팁
+
+1. **프로젝트를 처음 접하나요?** → [README.md](README.md)부터 시작
+2. **코드를 작성하거나 수정하나요?** → [CLAUDE.md](CLAUDE.md) 참조
+3. **비즈니스 로직을 이해하고 싶나요?** → [PRD.md](PRD.md) 참조
+4. **특정 페이지를 작업하나요?** → [docs/pages/ROUTES.md](docs/pages/ROUTES.md)에서 찾기
+5. **데이터베이스를 수정하나요?** → [schema.sql](src/lib/supabase/schema.sql) 참조
+
+---
 
 ## 🛠 기술 스택
 

@@ -1,5 +1,18 @@
 # 제품 요구 사항 정의서 (PRD: Product Requirements Document)
 
+> **💡 이 문서는**: 제품의 **비즈니스 요구사항과 정책**을 정의합니다.
+>
+> **기술적 구현**은 [AGENT.md](AGENT.md)를, **개발 가이드**는 [CLAUDE.md](CLAUDE.md)를 참조하세요.
+
+## Quick Links
+
+- **📖 Project Architecture**: [AGENT.md](AGENT.md)
+- **🔧 Development Guide**: [CLAUDE.md](CLAUDE.md)
+- **🚀 Quick Start**: [README.md](README.md)
+- **💾 Database Schema**: [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql)
+
+---
+
 ## 1. 프로젝트 개요
 - **프로젝트명**: 더와이즈 치과병원 연차 관리 시스템 (Dental Leave System)
 - **목적**: 더와이즈 치과병원 직원(약 80명)의 연차 신청, 승인, 잔액 관리를 효율적으로 자동화하고 투명하게 운영하기 위한 웹 기반 시스템.
@@ -38,21 +51,14 @@
 
 ## 3. 기술 스택 및 인프라
 
-### 3.1. Frontend
-- **Framework**: React 19.2.0 (TypeScript 5.9.3)
-- **Build Tool**: Vite 6.0.0
-- **Routing**: React Router 7.13.0
-- **State Management**: Zustand 5.0.10
-- **Styling**: Tailwind CSS 4.1.18, Radix UI 3.2.1
-- **Icons**: Lucide React 0.562.0
-- **Form Management**: React Hook Form 7.71.1
+**완전한 기술 스택은** [AGENT.md - Tech Stack](AGENT.md#기술-스택) **참조**
 
-### 3.2. Backend & Database (Supabase)
-- **Database**: PostgreSQL
-- **Authentication**: Supabase Auth
-- **Business Logic**: PostgreSQL Functions (PL/pgSQL) 및 Triggers
-- **Security**: Row Level Security (RLS) 정책 적용
-- **Automation**: pg_cron을 이용한 미결 연차 자동 승인 처리 (매일 00:00 KST)
+### 요약
+- **Frontend**: React 19 + TypeScript 5.9 + Vite 6
+- **Backend**: Supabase (PostgreSQL + Auth + RLS)
+- **Business Logic**: PostgreSQL RPC Functions (PL/pgSQL)
+- **Security**: Row Level Security (RLS) 정책
+- **Automation**: pg_cron (매일 00:00 KST 자동 승인)
 
 ## 4. 데이터 모델 및 정책
 
@@ -63,10 +69,15 @@
 - **표시용 View**: `leave_balances_display` 등 뷰를 통해 UI에서는 1.0, 0.5 단위로 변환하여 제공.
 
 ### 4.2. 주요 테이블 구조
-- **`users`**: 사용자 프로필 (ID, 이름, 입사일, 그룹, 권한, 상태).
-- **`leave_balances`**: 연도별 연차 발생/사용/잔액 관리.
-- **`leave_reservations`**: 연차 신청 및 예약 상태 관리.
-- **`leave_history`**: 승인 완료된 연차의 상세 차감 이력 (FIFO 대응).
+
+**완전한 데이터베이스 스키마는** [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql) **참조**
+
+- **`users`**: 사용자 프로필 (ID, 이름, 입사일, 그룹, 권한, 상태)
+- **`leave_balances`**: 연도별 연차 발생/사용/잔액 관리
+- **`leave_reservations`**: 연차 신청 및 예약 상태 관리
+- **`leave_history`**: 승인 완료된 연차의 상세 차감 이력 (FIFO 대응)
+- **`employees`**: 야간 진료 직원 (user_id nullable, 회원가입 전 등록 가능)
+- **`night_shift_records`**: 야간 근무 기록
 
 ### 4.3. 연차 산정 정책
 - **기본 발생**: 연 15일 (정책에 따라 가변).
@@ -75,29 +86,14 @@
 
 ## 5. 프로젝트 구조
 
-```
-src/
-├── api/                # 외부 API 정의 (필요 시)
-├── components/         # 재사용 가능한 UI 컴포넌트
-│   ├── auth/           # 인증 및 권한 가드
-│   ├── common/         # 공통 컴포넌트
-│   ├── dashboard/      # 대시보드 전용 컴포넌트
-│   └── layout/         # 레이아웃 (Header, Nav, Layout)
-├── data/               # 샘플 및 초기 데이터
-├── hooks/              # 커스텀 훅 (useUserProfile 등)
-├── lib/
-│   └── supabase/       # Supabase 클라이언트 및 DB 함수 정의
-├── pages/              # 페이지 단위 컴포넌트
-│   ├── Dashboard/      # 연차 현황판
-│   ├── LeaveRequest/   # 신청 페이지
-│   ├── LeaveApproval/  # 관리자 승인 페이지
-│   ├── Settings/       # 시스템 및 사용자 설정
-│   └── Login/          # 인증 페이지
-├── router/             # 라우팅 설정
-├── store/              # Zustand 상태 저장소
-├── types/              # TypeScript 인터페이스/타입 정의
-└── utils/              # 유틸리티 함수 및 상수
-```
+**완전한 프로젝트 구조는** [AGENT.md - Project Structure](AGENT.md#프로젝트-구조) **참조**
+
+### 주요 디렉토리
+- `src/components/auth/` - 인증 및 권한 가드 (AuthProvider, ProtectedRoute, RoleRoute)
+- `src/lib/supabase/` - Supabase 통합 레이어 (client, config, API, schema)
+- `src/pages/` - 페이지 컴포넌트 (Dashboard, LeaveRequest, LeaveApproval, Settings 등)
+- `src/store/` - 전역 상태 관리 (authStore)
+- `src/router/` - React Router 설정
 
 ## 6. 보안 정책 (RLS)
 - **사용자**: 본인의 데이터만 조회/수정 가능.

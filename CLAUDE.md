@@ -1,6 +1,18 @@
-# CLAUDE.md
+# CLAUDE.md - Claude Code Development Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **💡 이 문서는**: Claude Code로 개발할 때 필요한 **실용적인 가이드**입니다.
+>
+> **프로젝트 전체 구조**는 [AGENT.md](AGENT.md)를, **비즈니스 요구사항**은 [PRD.md](PRD.md)를 참조하세요.
+
+This file provides practical guidance for Claude Code (claude.ai/code) when working with code in this repository.
+
+## Quick Links
+
+- **📖 Project Structure & Architecture**: [AGENT.md](AGENT.md)
+- **📋 Product Requirements**: [PRD.md](PRD.md)
+- **🚀 Quick Start Guide**: [README.md](README.md)
+- **🗺️ Route Index**: [docs/pages/ROUTES.md](docs/pages/ROUTES.md)
+- **💾 Database Schema**: [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql)
 
 ## Project Overview
 
@@ -12,6 +24,8 @@ Dental Leave System (더와이즈 치과병원 연차 관리 시스템) - A comp
 - Night shift management and statistics
 - Role-based access control (ADMIN/USER/VIEW)
 - Multi-environment support (dev/qa/prod)
+
+**For detailed tech stack and project structure**, see [AGENT.md - Tech Stack](AGENT.md#기술-스택)
 
 ## Development Commands
 
@@ -57,113 +71,50 @@ Required environment variables:
 
 ## Architecture Overview
 
-### Tech Stack
-- **Frontend**: React 19.2.0 + TypeScript 5.9.3, Vite 6.0.0
-- **Routing**: React Router 7.13.0
-- **State Management**: Zustand 5.0.10 (global auth state)
+### Tech Stack Summary
+
+- **Frontend**: React 19 + TypeScript 5.9 + Vite 6
 - **Backend**: Supabase (PostgreSQL + Auth + RLS)
-- **Styling**: Tailwind CSS 4.1.18 + Radix UI 3.2.1
-- **Code Quality**: Biome 2.3.11 (linter + formatter, NOT ESLint/Prettier)
-- **Testing**: Vitest 4.0.18 + Testing Library
+- **Styling**: Tailwind CSS + Radix UI
+- **Code Quality**: Biome (NOT ESLint/Prettier)
+
+**For complete tech stack details**, see [AGENT.md - Tech Stack](AGENT.md#기술-스택)
 
 ### Key Architectural Patterns
 
-#### 1. Authentication & Authorization
-- **Auth Provider**: `src/components/auth/AuthProvider.tsx` - Initializes session on app mount, subscribes to auth changes
-- **Auth Store**: `src/store/authStore.ts` - Zustand store with localStorage persistence for auth state
-- **Route Guards**:
-  - `ProtectedRoute` - Requires authentication
-  - `RoleRoute` - Requires specific roles (ADMIN/USER/VIEW)
-- Auth state flows: AuthProvider → authStore → RoleRoute/ProtectedRoute
+**For detailed architecture patterns**, see [AGENT.md - Architecture](AGENT.md#핵심-아키텍처)
 
-#### 2. Supabase Integration
-- **Client**: `src/lib/supabase/client.ts` - Singleton Supabase client
-- **Config**: `src/lib/supabase/config.ts` - Environment-based config
-- **API Layer**: `src/lib/supabase/api/` - Organized by domain:
-  - `auth.ts` - Authentication operations
-  - `leave.ts` - Leave management (reservations, approvals)
-  - `user.ts` - User profile operations
-- **Types**: `src/lib/supabase/types/` - Database types (auto-generated from Supabase)
-- **Schema**: `src/lib/supabase/schema.sql` - Complete database schema with RLS policies
+#### Quick Reference
 
-#### 3. Database Design Principles
-- **INTEGER-based Leave Storage**: All leave values stored as 10x integers to avoid floating-point precision issues:
-  - 1 day = `10`
-  - 0.5 day = `5`
-- **Display Views**: `*_display` views convert integers back to decimals for UI consumption
-- **FIFO Principle**: Leave deduction prioritizes oldest leave (earliest `expire_at`) via `approve_leave` RPC function
-- **RPC Functions**: Business logic implemented as PostgreSQL functions:
-  - `get_user_leave_status(user_id)` - Get user's leave summary
-  - `reserve_leave(user_id, date, type, session)` - Create leave request
-  - `approve_leave(reservation_id)` - Approve and deduct leave (FIFO)
-  - `cancel_leave(reservation_id)` - Cancel pending reservation
-  - `cancel_leave_history(history_id)` - Admin-only: revert used leave
+1. **Authentication & Authorization**
+   - Auth state: `AuthProvider` → `authStore` (Zustand) → `ProtectedRoute` / `RoleRoute`
+   - Roles: ADMIN (full access), USER (own data), VIEW (read-only)
 
-#### 4. Role-Based Access Control (RBAC)
-Three roles defined in `users.role`:
-- **ADMIN**: Full access - manage all users, approve/cancel leaves, access settings
-- **USER**: Limited access - view own data, request leave, view own history
-- **VIEW**: Read-only access - view all leave data but cannot modify
+2. **Supabase Integration**
+   - API Layer: `src/lib/supabase/api/` (auth.ts, leave.ts, user.ts, nightShift.ts)
+   - All business logic via RPC functions (never direct table updates)
 
-RLS policies enforce access at database level via helper functions:
-- `is_admin()` - Check if current user is admin
-- `is_user()` - Check if current user is regular user
-- `is_view()` - Check if current user is viewer
+3. **Database Design Principles** (Critical!)
+   - **INTEGER-based storage**: All leave values × 10 (1 day = `10`, 0.5 day = `5`)
+   - **FIFO deduction**: Oldest leave first via `approve_leave()` RPC
+   - **RPC Functions**: Use these for all operations:
+     - `get_user_leave_status(user_id)`
+     - `reserve_leave(user_id, date, type, session)`
+     - `approve_leave(reservation_id)` - FIFO deduction
+     - `cancel_leave(reservation_id)`
+     - `cancel_leave_history(history_id)` - Admin only
 
-#### 5. Router Structure
-Defined in `src/router/index.tsx`:
-- Root route wraps all routes with `<AuthProvider>`
-- Public routes: `/login`, `/register` (protected but different flow)
-- Protected routes under `/`:
-  - `/` - Dashboard (ADMIN only)
-  - `/calendar` - Leave calendar with FullCalendar (all authenticated)
-  - `/request` - Leave request form (all authenticated)
-  - `/approval` - Leave approval page (ADMIN only)
-  - `/history` - Leave history (all authenticated)
-  - `/night-shift-stats` - Night shift statistics (all authenticated)
-  - `/settings/*` - Settings pages (ADMIN only)
-    - `/settings` - General settings (index)
-    - `/settings/leave-management` - Manual leave adjustment
-    - `/settings/history` - User change history
-    - `/settings/night-shift` - Night shift management
+4. **Router Structure** - See [docs/pages/ROUTES.md](docs/pages/ROUTES.md) for complete route list
+   - Public: `/login`, `/register`
+   - Protected: `/`, `/calendar`, `/request`, `/approval`, `/history`, `/night-shift-stats`
+   - Admin-only: `/`, `/approval`, `/settings/*`
 
-### Project Structure Conventions
-
-```
-src/
-├── components/
-│   ├── auth/          # Authentication components (AuthProvider, ProtectedRoute, RoleRoute)
-│   ├── common/        # Reusable UI components
-│   ├── dashboard/     # Dashboard-specific components
-│   └── layout/        # Layout components (Header, Navigation, Layout)
-├── pages/             # Page-level components (one folder per route)
-│   ├── Dashboard/     # Team leave overview (ADMIN)
-│   ├── LeaveCalendar/ # Calendar view with FullCalendar
-│   ├── LeaveRequest/  # Leave request form
-│   ├── LeaveApproval/ # Approve/reject leaves (ADMIN)
-│   ├── LeaveHistory/  # User's leave history
-│   ├── NightShiftStats/ # Night shift statistics
-│   ├── UserRegistration/ # User registration form
-│   ├── Settings/      # System settings (ADMIN)
-│   └── Login/         # Login page
-├── lib/
-│   └── supabase/      # Supabase integration layer
-│       ├── api/       # API functions organized by domain
-│       │   ├── auth.ts      # Authentication API
-│       │   ├── leave.ts     # Leave management API
-│       │   ├── user.ts      # User management API
-│       │   └── nightShift.ts # Night shift API
-│       ├── types/     # Database type definitions
-│       │   └── database.types.ts # Auto-generated from Supabase
-│       ├── client.ts  # Supabase client singleton
-│       ├── config.ts  # Environment-based configuration
-│       └── schema.sql # Complete database schema (reference)
-├── store/             # Zustand stores (authStore with localStorage persist)
-├── router/            # React Router 7 configuration
-├── hooks/             # Custom React hooks (e.g., useUserProfile)
-├── utils/             # Utility functions and constants
-└── types/             # TypeScript type definitions (nightShift types, etc.)
-```
+5. **Project Structure** - See [AGENT.md - Project Structure](AGENT.md#프로젝트-구조) for complete directory tree
+   - `src/components/auth/` - AuthProvider, ProtectedRoute, RoleRoute
+   - `src/lib/supabase/api/` - auth.ts, leave.ts, user.ts, nightShift.ts
+   - `src/lib/supabase/schema.sql` - Complete DB schema
+   - `src/pages/` - One folder per route
+   - `src/store/authStore.ts` - Zustand auth state with localStorage
 
 ### Important Implementation Details
 
