@@ -45,6 +45,40 @@ COMMENT ON COLUMN users.status IS '사용자 상태 (ACTIVE/INACTIVE/RESIGNED)';
 
 
 -- ================================================================
+-- 1.5 SIGNUP_REQUESTS 테이블
+-- ================================================================
+-- 가입 초대 요청 관리
+
+CREATE TABLE IF NOT EXISTS signup_requests (
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  requested_name TEXT,
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+  processed_by_user_id UUID REFERENCES users(user_id),
+  processed_at TIMESTAMPTZ,
+  reject_reason TEXT,
+  note TEXT
+);
+
+-- 인덱스
+CREATE INDEX idx_signup_requests_status ON signup_requests(status);
+CREATE INDEX idx_signup_requests_requested_at ON signup_requests(requested_at DESC);
+CREATE INDEX idx_signup_requests_processed_at ON signup_requests(processed_at DESC);
+
+-- 코멘트
+COMMENT ON TABLE signup_requests IS '가입 초대 요청';
+COMMENT ON COLUMN signup_requests.email IS '가입 요청 이메일 (UNIQUE)';
+COMMENT ON COLUMN signup_requests.requested_name IS '요청자 이름';
+COMMENT ON COLUMN signup_requests.requested_at IS '요청 시간';
+COMMENT ON COLUMN signup_requests.status IS '요청 상태 (PENDING/APPROVED/REJECTED)';
+COMMENT ON COLUMN signup_requests.processed_by_user_id IS '처리 관리자 user_id';
+COMMENT ON COLUMN signup_requests.processed_at IS '처리 시각';
+COMMENT ON COLUMN signup_requests.reject_reason IS '거부 사유';
+COMMENT ON COLUMN signup_requests.note IS '관리자 메모';
+
+
+-- ================================================================
 -- 2. LEAVE_BALANCES 테이블
 -- ================================================================
 -- 연도별 연차 잔액 관리
@@ -736,11 +770,27 @@ $$;
 
 -- RLS 활성화
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE signup_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_balances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_history ENABLE ROW LEVEL SECURITY;
 
 -- 관리자: 전체 허용 / 사용자: 조회+삽입 / VIEW: 조회만
+
+-- signup_requests
+CREATE POLICY "signup_requests_insert" ON signup_requests
+  FOR INSERT WITH CHECK (
+    status = 'PENDING' AND processed_by_user_id IS NULL AND processed_at IS NULL
+  );
+
+CREATE POLICY "signup_requests_select" ON signup_requests
+  FOR SELECT USING (is_admin());
+
+CREATE POLICY "signup_requests_update" ON signup_requests
+  FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
+
+CREATE POLICY "signup_requests_delete" ON signup_requests
+  FOR DELETE USING (is_admin());
 
 -- users
 CREATE POLICY "users_select" ON users

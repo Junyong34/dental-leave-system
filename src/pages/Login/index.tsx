@@ -5,6 +5,7 @@ import {
   Card,
   Flex,
   IconButton,
+  SegmentedControl,
   Text,
   TextField,
 } from '@radix-ui/themes'
@@ -12,12 +13,13 @@ import { AlertCircle, Eye, EyeOff, Hospital, LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { getSession } from '@/lib/supabase/api/auth'
+import SignupRequestTab from '@/pages/Login/SignupRequestTab'
+import { useAuthStore } from '@/store/authStore.ts'
 import {
   consumeFlashNotice,
   type FlashNotice,
   setFlashNotice,
 } from '@/utils/flashNotice'
-import { useAuthStore } from '../../store/authStore'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -26,6 +28,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<FlashNotice | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
 
@@ -35,6 +38,12 @@ export default function Login() {
       setNotice(flash)
     }
   }, [])
+
+  const handleTabChange = (tab: 'login' | 'signup') => {
+    setActiveTab(tab)
+    setError('')
+    setNotice(null)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,86 +99,115 @@ export default function Login() {
             </Text>
           </Flex>
 
-          <form onSubmit={handleSubmit}>
-            <Flex direction="column" gap="4">
-              <Box>
-                <Text
-                  as="label"
-                  size="2"
-                  weight="medium"
-                  mb="2"
-                  className="block text-gray-700"
-                >
-                  이메일
-                </Text>
-                <TextField.Root
+          <SegmentedControl.Root
+            value={activeTab}
+            onValueChange={(value) =>
+              handleTabChange(value as 'login' | 'signup')
+            }
+            radius="full"
+            size={{ initial: '3', sm: '2' }}
+            className="w-full"
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}
+            aria-label="로그인 및 가입 요청 탭"
+          >
+            <SegmentedControl.Item value="login">
+              로그인
+            </SegmentedControl.Item>
+            <SegmentedControl.Item value="signup">
+              가입 초대 요청
+            </SegmentedControl.Item>
+          </SegmentedControl.Root>
+
+          {activeTab === 'login' ? (
+            <form onSubmit={handleSubmit}>
+              <Flex direction="column" gap="4">
+                <Box>
+                  <Text
+                    as="label"
+                    size="2"
+                    weight="medium"
+                    mb="2"
+                    className="block text-gray-700"
+                  >
+                    이메일
+                  </Text>
+                  <TextField.Root
+                    size="3"
+                    type="email"
+                    placeholder="이메일을 입력하세요"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                </Box>
+
+                <Box>
+                  <Text
+                    as="label"
+                    size="2"
+                    weight="medium"
+                    mb="2"
+                    className="block text-gray-700"
+                  >
+                    비밀번호
+                  </Text>
+                  <TextField.Root
+                    size="3"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="비밀번호를 입력하세요"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                  >
+                    <TextField.Slot side="right">
+                      <IconButton
+                        type="button"
+                        variant="ghost"
+                        color="gray"
+                        aria-label={
+                          showPassword ? '비밀번호 숨기기' : '비밀번호 표시'
+                        }
+                        onClick={() => setShowPassword((prev) => !prev)}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </IconButton>
+                    </TextField.Slot>
+                  </TextField.Root>
+                </Box>
+
+                {error && (
+                  <Callout.Root color="red" size="2">
+                    <Callout.Icon>
+                      <AlertCircle size={16} />
+                    </Callout.Icon>
+                    <Callout.Text>{error}</Callout.Text>
+                  </Callout.Root>
+                )}
+
+                {notice && (
+                  <Callout.Root color={notice.tone ?? 'blue'} size="2">
+                    <Callout.Text>{notice.message}</Callout.Text>
+                  </Callout.Root>
+                )}
+
+                <Button
+                  type="submit"
                   size="3"
-                  type="email"
-                  placeholder="이메일을 입력하세요"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
-              </Box>
-
-              <Box>
-                <Text
-                  as="label"
-                  size="2"
-                  weight="medium"
-                  mb="2"
-                  className="block text-gray-700"
+                  className="cursor-pointer"
+                  disabled={isSubmitting}
                 >
-                  비밀번호
-                </Text>
-                <TextField.Root
-                  size="3"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="비밀번호를 입력하세요"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                >
-                  <TextField.Slot side="right">
-                    <IconButton
-                      type="button"
-                      variant="ghost"
-                      color="gray"
-                      aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
-                      onClick={() => setShowPassword((prev) => !prev)}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </IconButton>
-                  </TextField.Slot>
-                </TextField.Root>
-              </Box>
-
-              {error && (
-                <Callout.Root color="red" size="2">
-                  <Callout.Icon>
-                    <AlertCircle size={16} />
-                  </Callout.Icon>
-                  <Callout.Text>{error}</Callout.Text>
-                </Callout.Root>
-              )}
-
-              {notice && (
-                <Callout.Root color={notice.tone ?? 'blue'} size="2">
-                  <Callout.Text>{notice.message}</Callout.Text>
-                </Callout.Root>
-              )}
-
-              <Button
-                type="submit"
-                size="3"
-                className="cursor-pointer"
-                disabled={isSubmitting}
-              >
-                <LogIn size={16} />
-                {isSubmitting ? '로그인 중...' : '로그인'}
-              </Button>
-            </Flex>
-          </form>
+                  <LogIn size={16} />
+                  {isSubmitting ? '로그인 중...' : '로그인'}
+                </Button>
+              </Flex>
+            </form>
+          ) : (
+            <SignupRequestTab />
+          )}
         </Flex>
       </Card>
     </Flex>

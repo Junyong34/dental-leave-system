@@ -14,6 +14,7 @@ import ResetPassword from '@/pages/ResetPassword'
 import Settings from '@/pages/Settings'
 import GeneralSettings from '@/pages/Settings/GeneralSettings'
 import NightShiftManagement from '@/pages/Settings/NightShift'
+import SignupRequests from '@/pages/Settings/SignupRequests'
 import UserHistory from '@/pages/Settings/UserHistory'
 import UserLeaveManagement from '@/pages/Settings/UserLeaveManagement'
 import UserRegistration from '@/pages/UserRegistration'
@@ -47,6 +48,10 @@ const settingsRoutes: RouteObject[] = [
   {
     path: 'leave-management',
     element: <UserLeaveManagement />,
+  },
+  {
+    path: 'signup-requests',
+    element: <SignupRequests />,
   },
   {
     path: 'history',

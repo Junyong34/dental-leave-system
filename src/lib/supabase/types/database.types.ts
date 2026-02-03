@@ -247,6 +247,50 @@ export type Database = {
           },
         ]
       }
+      signup_requests: {
+        Row: {
+          email: string
+          id: number
+          note: string | null
+          processed_at: string | null
+          processed_by_user_id: string | null
+          reject_reason: string | null
+          requested_at: string
+          requested_name: string | null
+          status: string
+        }
+        Insert: {
+          email: string
+          id?: number
+          note?: string | null
+          processed_at?: string | null
+          processed_by_user_id?: string | null
+          reject_reason?: string | null
+          requested_at?: string
+          requested_name?: string | null
+          status?: string
+        }
+        Update: {
+          email?: string
+          id?: number
+          note?: string | null
+          processed_at?: string | null
+          processed_by_user_id?: string | null
+          reject_reason?: string | null
+          requested_at?: string
+          requested_name?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'signup_requests_processed_by_user_id_fkey'
+            columns: ['processed_by_user_id']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['user_id']
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null

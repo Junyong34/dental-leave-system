@@ -153,6 +153,37 @@ await createUser({
 await updateUserStatus('U001', 'RESIGNED')
 ```
 
+## 📩 가입 요청 API
+
+**파일**: `signupRequest.ts`
+
+### 조회/관리 함수
+
+| 함수 | 설명 | 파라미터 | 반환 |
+|------|------|----------|------|
+| `createSignupRequest` | 가입 초대 요청 생성 | email, requestedName? | void |
+| `getSignupRequests` | 가입 요청 목록 조회 | status? | SignupRequest[] |
+| `approveSignupRequest` | 승인 처리 (Edge Function 호출) | requestId | void |
+| `rejectSignupRequest` | 거부 처리 | requestId, reason, note? | void |
+
+### 사용 예시
+```typescript
+// 가입 요청 생성
+await createSignupRequest('user@example.com', '홍길동')
+
+// 대기 목록 조회
+const result = await getSignupRequests('PENDING')
+if (result.success && result.data) {
+  console.log(result.data.length)
+}
+
+// 승인 처리 (메일 발송)
+await approveSignupRequest(1)
+
+// 거부 처리
+await rejectSignupRequest(1, '도메인 불일치', '내부 정책 확인 필요')
+```
+
 ## ⚠️ 에러 처리 패턴
 
 모든 API 함수는 동일한 패턴 사용:
