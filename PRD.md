@@ -1,12 +1,11 @@
 # 제품 요구 사항 정의서 (PRD: Product Requirements Document)
 
 > **💡 이 문서는**: 제품의 **비즈니스 요구사항과 정책**을 정의합니다.
->
-> **기술적 구현**은 [AGENT.md](AGENT.md)를, **개발 가이드**는 [CLAUDE.md](CLAUDE.md)를 참조하세요.
+
 
 ## Quick Links
 
-- **📖 Project Architecture**: [AGENT.md](AGENT.md)
+- **📖 Project Architecture**: [AGENT.md](AGENTS.md)
 - **🔧 Development Guide**: [CLAUDE.md](CLAUDE.md)
 - **🚀 Quick Start**: [README.md](README.md)
 - **💾 Database Schema**: [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql)
@@ -51,7 +50,7 @@
 
 ## 3. 기술 스택 및 인프라
 
-**완전한 기술 스택은** [AGENT.md - Tech Stack](AGENT.md#기술-스택) **참조**
+**완전한 기술 스택은** [AGENT.md - Tech Stack](AGENTS.md#기술-스택) **참조**
 
 ### 요약
 - **Frontend**: React 19 + TypeScript 5.9 + Vite 6
@@ -86,7 +85,7 @@
 
 ## 5. 프로젝트 구조
 
-**완전한 프로젝트 구조는** [AGENT.md - Project Structure](AGENT.md#프로젝트-구조) **참조**
+**완전한 프로젝트 구조는** [AGENTS.md - Project Structure](AGENTS.md#프로젝트-구조) **참조**
 
 ### 주요 디렉토리
 - `src/components/auth/` - 인증 및 권한 가드 (AuthProvider, ProtectedRoute, RoleRoute)

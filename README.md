@@ -9,7 +9,7 @@
 ## 📚 문서 링크
 
 ### 개발자를 위한 문서
-- **[AGENT.md](AGENT.md)** - 프로젝트 전체 구조 및 아키텍처 (마스터 문서)
+- **[AGENTS.md](AGENTS.md)** - 프로젝트 전체 구조 및 아키텍처 (마스터 문서)
 - **[CLAUDE.md](CLAUDE.md)** - Claude Code 개발 가이드
 - **[src/lib/supabase/schema.sql](src/lib/supabase/schema.sql)** - 완전한 데이터베이스 스키마
 
@@ -40,7 +40,7 @@
 - **UI**: Tailwind CSS + Radix UI
 - **Code Quality**: Biome (NOT ESLint/Prettier)
 
-**완전한 기술 스택**: [AGENT.md - Tech Stack](AGENT.md#기술-스택) 참조
+**완전한 기술 스택**: [AGENT.md - Tech Stack](AGENTS.md#기술-스택) 참조
 
 ## 프로젝트 구조 (요약)
 
@@ -53,7 +53,7 @@ src/
 └── router/             # React Router 설정
 ```
 
-**완전한 프로젝트 구조**: [AGENT.md - Project Structure](AGENT.md#프로젝트-구조) 참조
+**완전한 프로젝트 구조**: [AGENT.md - Project Structure](AGENTS.md#프로젝트-구조) 참조
 
 ## 데이터베이스 구조 (요약)
 

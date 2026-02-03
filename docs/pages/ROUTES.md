@@ -2,13 +2,13 @@
 
 > **💡 이 문서는**: 모든 라우트의 목적과 권한을 **빠르게 참조**하기 위한 인덱스입니다.
 >
-> **상세 구현**은 [AGENT.md](../../AGENT.md)를, **개발 가이드**는 [CLAUDE.md](../../CLAUDE.md)를 참조하세요.
+> **상세 구현**은 [AGENTS.md](../../AGENTS.md)를, **개발 가이드**는 [CLAUDE.md](../../CLAUDE.md)를 참조하세요.
 
 **최종 업데이트**: 2026-02-03
 
 ## Quick Links
 
-- **📖 Project Structure**: [AGENT.md](../../AGENT.md)
+- **📖 Project Structure**: [AGENTS.md](../../AGENTS.md)
 - **🔧 Development Guide**: [CLAUDE.md](../../CLAUDE.md)
 - **📋 Product Requirements**: [PRD.md](../../PRD.md)
 
@@ -16,22 +16,22 @@
 
 ## 라우트 인덱스
 
-| 경로 | 페이지 | 목적 | 권한 | 상세 문서 |
-|------|--------|------|------|----------|
-| `/login` | Login | 이메일/비밀번호 인증 | 공개 | - |
-| `/reset-password` | ResetPassword | 비밀번호 재설정 | 공개 | - |
-| `/register` | UserRegistration | 사용자 등록 | 인증 필요 | - |
-| `/` | Dashboard | 팀원 연차 현황 대시보드 | ADMIN | [AGENT.md - Dashboard](../../AGENT.md#dashboard) |
-| `/calendar` | LeaveCalendar | FullCalendar 기반 연차 시각화 | 인증 필요 | [LeaveCalendar-PRD.md](./LeaveCalendar-PRD.md) |
-| `/request` | LeaveRequest | 연차 신청 (종일/반차) | 인증 필요 | [CLAUDE.md](../../CLAUDE.md#leave-request-flow) |
-| `/approval` | LeaveApproval | 연차 승인/반려 | ADMIN | [CLAUDE.md](../../CLAUDE.md#leave-request-flow) |
-| `/history` | LeaveHistory | 연차 사용 이력 조회 | 인증 필요 | - |
-| `/night-shift-stats` | NightShiftStats | 야간 근무 통계 | 인증 필요 | [NightShift-PRD.md](./NightShift-PRD.md) |
-| `/settings` | Settings | 시스템 설정 (index) | ADMIN | - |
-| `/settings/leave-management` | UserLeaveManagement | 연차 수동 조정 | ADMIN | - |
-| `/settings/signup-requests` | SignupRequests | 가입 요청 관리 | ADMIN | - |
-| `/settings/history` | UserHistory | 사용자 이력 | ADMIN | - |
-| `/settings/night-shift` | NightShiftManagement | 야간 진료 관리 | ADMIN | [NightShift-PRD.md](./NightShift-PRD.md) |
+| 경로 | 페이지 | 목적 | 권한 | 상세 문서                                              |
+|------|--------|------|------|----------------------------------------------------|
+| `/login` | Login | 이메일/비밀번호 인증 | 공개 | -                                                  |
+| `/reset-password` | ResetPassword | 비밀번호 재설정 | 공개 | -                                                  |
+| `/register` | UserRegistration | 사용자 등록 | 인증 필요 | -                                                  |
+| `/` | Dashboard | 팀원 연차 현황 대시보드 | ADMIN | [AGENTS.md - Dashboard](../../AGENTS.md#dashboard) |
+| `/calendar` | LeaveCalendar | FullCalendar 기반 연차 시각화 | 인증 필요 | [LeaveCalendar-PRD.md](./LeaveCalendar-PRD.md)     |
+| `/request` | LeaveRequest | 연차 신청 (종일/반차) | 인증 필요 | [CLAUDE.md](../../CLAUDE.md#leave-request-flow)    |
+| `/approval` | LeaveApproval | 연차 승인/반려 | ADMIN | [CLAUDE.md](../../CLAUDE.md#leave-request-flow)    |
+| `/history` | LeaveHistory | 연차 사용 이력 조회 | 인증 필요 | -                                                  |
+| `/night-shift-stats` | NightShiftStats | 야간 근무 통계 | 인증 필요 | [NightShift-PRD.md](./NightShift-PRD.md)           |
+| `/settings` | Settings | 시스템 설정 (index) | ADMIN | -                                                  |
+| `/settings/leave-management` | UserLeaveManagement | 연차 수동 조정 | ADMIN | -                                                  |
+| `/settings/signup-requests` | SignupRequests | 가입 요청 관리 | ADMIN | -                                                  |
+| `/settings/history` | UserHistory | 사용자 이력 | ADMIN | -                                                  |
+| `/settings/night-shift` | NightShiftManagement | 야간 진료 관리 | ADMIN | [NightShift-PRD.md](./NightShift-PRD.md)           |
 
 ---
 
