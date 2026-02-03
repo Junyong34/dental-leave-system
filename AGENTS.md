@@ -110,7 +110,7 @@ dental-leave-system/
 ├── .env.production               # Prod environment
 ├── biome.json                    # Biome config
 ├── vite.config.ts                # Vite config
-├── AGENT.md                      # This file
+├── AGENTS.md                     # This file
 ├── ARCHITECTURE.md               # System design
 ├── CLAUDE.md                     # Quick reference
 ├── DEVELOPMENT.md                # Conventions

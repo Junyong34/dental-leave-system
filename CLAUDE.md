@@ -2,7 +2,7 @@
 
 > **Commands, Environment, and Gotchas for Claude Code development.**
 >
-> **See also**: [ARCHITECTURE.md](ARCHITECTURE.md) (design), [DEVELOPMENT.md](DEVELOPMENT.md) (conventions), [AGENT.md](AGENTS.md) (project map)
+> **See also**: [ARCHITECTURE.md](ARCHITECTURE.md) (design), [DEVELOPMENT.md](DEVELOPMENT.md) (conventions), [AGENTS.md](AGENTS.md) (project map)
 
 ## Project Overview
 
@@ -122,7 +122,7 @@ get_all_employees_stats(year, month)
 |------|---------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Tech stack, patterns, design decisions |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Coding conventions, workflows |
-| [AGENT.md](AGENTS.md) | Project structure, route table |
+| [AGENTS.md](AGENTS.md) | Project structure, route table |
 | [PRD.md](PRD.md) | Business requirements |
 | [schema.sql](src/lib/supabase/schema.sql) | Complete DB schema |
 | [authStore.ts](src/store/authStore.ts) | Auth state management |
@@ -130,9 +130,4 @@ get_all_employees_stats(year, month)
 
 ---
 
-## Type Generation
-
-After schema changes:
-```bash
-npx supabase gen types typescript --project-id <ID> > src/lib/supabase/types/database.types.ts
-```
+타입 생성 절차는 `DEVELOPMENT.md`를 참고하세요.

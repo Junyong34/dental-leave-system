@@ -16,15 +16,7 @@
 | 들여쓰기 | 2 spaces |
 | 라인 폭 | 80 |
 
-### 명령어
-
-```bash
-pnpm lint         # 문제 확인
-pnpm lint:fix     # 자동 수정
-pnpm format       # 포맷팅
-```
-
-**커밋 전에 `pnpm lint:fix`를 항상 실행하세요.**
+코드 품질 관련 명령어는 `CLAUDE.md`를 참고하세요.
 
 ---
 
@@ -170,13 +162,7 @@ function Component() {
 - **Vitest** + **happy-dom** (jsdom 사용 금지)
 - **Testing Library**로 React 컴포넌트 테스트
 
-### 명령어
-
-```bash
-pnpm test           # 테스트 실행
-pnpm test:ui        # Vitest UI 열기
-pnpm test:coverage  # 커버리지 생성
-```
+테스트 실행 명령어는 `CLAUDE.md`를 참고하세요.
 
 ### 테스트 파일 위치
 
@@ -186,25 +172,6 @@ src/
     Button.tsx
     Button.test.tsx   # 같은 위치에 둠
 ```
-
----
-
-## 환경 설정
-
-### 필수 환경 변수
-
-```bash
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key
-```
-
-### 환경 파일
-
-| 파일 | 용도 |
-|------|-------|
-| `.env.local` | 개발 (`pnpm dev`) |
-| `.env.qa` | QA 테스트 (`pnpm dev:qa`) |
-| `.env.production` | 운영 빌드 |
 
 ---
 

@@ -5,8 +5,9 @@
 
 ## Quick Links
 
-- **📖 Project Architecture**: [AGENT.md](AGENTS.md)
-- **🔧 Development Guide**: [CLAUDE.md](CLAUDE.md)
+- **🗺️ Project Map**: [AGENTS.md](AGENTS.md)
+- **🏗️ Architecture**: [ARCHITECTURE.md](ARCHITECTURE.md)
+- **🔧 Development Guide**: [DEVELOPMENT.md](DEVELOPMENT.md)
 - **🚀 Quick Start**: [README.md](README.md)
 - **💾 Database Schema**: [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql)
 
@@ -48,26 +49,15 @@
 - **연차 잔액 수동 조정**: 관리자가 특정 사용자의 연차 잔액을 직접 수정 가능.
 - **시스템 설정**: 병원 정책에 따른 기본 연차 설정 등.
 
-## 3. 기술 스택 및 인프라
+## 3. 데이터 모델 및 정책
 
-**완전한 기술 스택은** [AGENT.md - Tech Stack](AGENTS.md#기술-스택) **참조**
-
-### 요약
-- **Frontend**: React 19 + TypeScript 5.9 + Vite 6
-- **Backend**: Supabase (PostgreSQL + Auth + RLS)
-- **Business Logic**: PostgreSQL RPC Functions (PL/pgSQL)
-- **Security**: Row Level Security (RLS) 정책
-- **Automation**: pg_cron (매일 00:00 KST 자동 승인)
-
-## 4. 데이터 모델 및 정책
-
-### 4.1. 데이터 단위 정책
+### 3.1. 데이터 단위 정책
 - **INTEGER 기반 저장**: 소수점 연산 오차 방지를 위해 모든 연차 수치는 10배수 정수로 저장.
   - 1.0일 → `10`
   - 0.5일 → `5`
 - **표시용 View**: `leave_balances_display` 등 뷰를 통해 UI에서는 1.0, 0.5 단위로 변환하여 제공.
 
-### 4.2. 주요 테이블 구조
+### 3.2. 주요 테이블 구조
 
 **완전한 데이터베이스 스키마는** [src/lib/supabase/schema.sql](src/lib/supabase/schema.sql) **참조**
 
@@ -78,23 +68,12 @@
 - **`employees`**: 야간 진료 직원 (user_id nullable, 회원가입 전 등록 가능)
 - **`night_shift_records`**: 야간 근무 기록
 
-### 4.3. 연차 산정 정책
+### 3.3. 연차 산정 정책
 - **기본 발생**: 연 15일 (정책에 따라 가변).
 - **근속 가산**: 입사일 기준 근속 연수에 따른 추가 연차 부여 로직 지원.
 - **FIFO 차감**: 만료일이 가장 빠른 연차부터 우선 소진.
 
-## 5. 프로젝트 구조
-
-**완전한 프로젝트 구조는** [AGENTS.md - Project Structure](AGENTS.md#프로젝트-구조) **참조**
-
-### 주요 디렉토리
-- `src/components/auth/` - 인증 및 권한 가드 (AuthProvider, ProtectedRoute, RoleRoute)
-- `src/lib/supabase/` - Supabase 통합 레이어 (client, config, API, schema)
-- `src/pages/` - 페이지 컴포넌트 (Dashboard, LeaveRequest, LeaveApproval, Settings 등)
-- `src/store/` - 전역 상태 관리 (authStore)
-- `src/router/` - React Router 설정
-
-## 6. 보안 정책 (RLS)
+## 4. 보안 정책 (RLS)
 - **사용자**: 본인의 데이터만 조회/수정 가능.
 - **관리자(ADMIN)**: 모든 데이터에 대한 CRUD 권한 보유.
 - **뷰어(VIEW)**: 모든 데이터에 대한 조회(Select) 권한만 보유.

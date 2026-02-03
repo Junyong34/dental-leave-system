@@ -161,14 +161,7 @@ authStore (Zustand + localStorage)
 - 연차 데이터: API에서 항상 최신 조회
 - 사용자 프로필: `authStore.userProfile`에 캐시
 
-### 3. 타입 생성
-
-스키마에서 DB 타입 자동 생성:
-```bash
-npx supabase gen types typescript --project-id <ID> > src/lib/supabase/types/database.types.ts
-```
-
-### 4. 환경 분리
+### 3. 환경 분리
 
 | 환경 | Env 파일 | 사용 목적 |
 |-------------|----------|----------|
