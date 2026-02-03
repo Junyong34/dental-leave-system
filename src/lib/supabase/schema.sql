@@ -776,6 +776,7 @@ ALTER TABLE leave_reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leave_history ENABLE ROW LEVEL SECURITY;
 
 -- 관리자: 전체 허용 / 사용자: 조회+삽입 / VIEW: 조회만
+-- signup_requests: 공개 INSERT 허용, 조회/수정/삭제는 관리자만
 
 -- signup_requests
 CREATE POLICY "signup_requests_insert" ON signup_requests

@@ -77,7 +77,22 @@ export async function approveSignupRequest(
   try {
     const { data: sessionData, error: sessionError } =
       await supabase.auth.getSession()
-    const accessToken = sessionData?.session?.access_token
+
+    let session = sessionData?.session ?? null
+
+    if (!session || (session.expires_at ?? 0) * 1000 < Date.now() + 30_000) {
+      const { data: refreshed, error: refreshError } =
+        await supabase.auth.refreshSession()
+      if (refreshError) {
+        return {
+          success: false,
+          error: '로그인 세션 갱신에 실패했습니다. 다시 로그인해주세요.',
+        }
+      }
+      session = refreshed.session ?? null
+    }
+
+    const accessToken = session?.access_token
 
     if (sessionError || !accessToken) {
       return {
@@ -94,7 +109,26 @@ export async function approveSignupRequest(
     })
 
     if (error) {
-      return { success: false, error: error.message }
+      let message = error.message
+      const context = (error as { context?: Response }).context
+      if (context) {
+        try {
+          const body = (await context.clone().json()) as { error?: string }
+          if (body?.error) {
+            message = body.error
+          }
+        } catch {
+          try {
+            const text = await context.clone().text()
+            if (text) {
+              message = text
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+      return { success: false, error: message }
     }
 
     return { success: true }
