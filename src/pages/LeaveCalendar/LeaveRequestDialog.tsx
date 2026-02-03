@@ -208,7 +208,7 @@ export function LeaveRequestDialog({
           <Box>
             <SearchableEmployeeSelect
               employees={activeUsers.map((user) => ({
-                id: Number(user.user_id),
+                id: user.user_id,
                 name: user.name,
               }))}
               value={selectedUserId}
