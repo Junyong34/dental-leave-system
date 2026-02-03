@@ -68,9 +68,7 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 function NightShiftStatsPage() {
   const [year, setYear] = useState(CURRENT_YEAR)
   const [month, setMonth] = useState<number | null>(null)
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(
-    null,
-  )
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([])
 
   const [employees, setEmployees] = useState<Employee[]>([])
   const [config, setConfig] = useState<NightShiftConfig[]>([])
@@ -224,9 +222,10 @@ function NightShiftStatsPage() {
   }, [selectedRecordDate, selectedRecordEmployeeId])
 
   // 필터링된 통계
-  const filteredStats = selectedEmployeeId
-    ? stats.filter((s) => s.employee_id === selectedEmployeeId)
-    : stats
+  const filteredStats =
+    selectedEmployeeIds.length > 0
+      ? stats.filter((s) => selectedEmployeeIds.includes(s.employee_id))
+      : stats
 
   // CSV 내보내기
   const handleExportCSV = () => {
@@ -483,9 +482,10 @@ function NightShiftStatsPage() {
             <Flex direction="column" gap="1">
               <SearchableEmployeeSelect
                 employees={employees}
-                value={selectedEmployeeId?.toString() || 'all'}
-                onValueChange={(val) =>
-                  setSelectedEmployeeId(val === 'all' ? null : Number(val))
+                multiple
+                values={selectedEmployeeIds.map((id) => id.toString())}
+                onValuesChange={(values) =>
+                  setSelectedEmployeeIds(values.map((val) => Number(val)))
                 }
                 label="직원"
                 placeholder="직원을 선택하세요"

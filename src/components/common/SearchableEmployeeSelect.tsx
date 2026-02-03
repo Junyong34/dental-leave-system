@@ -8,6 +8,8 @@ export interface BaseEmployee {
   name: string
 }
 
+const EMPTY_VALUES: string[] = []
+
 interface SearchableEmployeeSelectProps<T extends BaseEmployee> {
   employees: T[]
   value: string
@@ -20,17 +22,42 @@ interface SearchableEmployeeSelectProps<T extends BaseEmployee> {
   getEmployeeName?: (employee: T) => string
 }
 
-export function SearchableEmployeeSelect<T extends BaseEmployee>({
-  employees,
-  value,
-  onValueChange,
-  placeholder = '직원을 선택하세요',
-  label,
-  showAllOption = false,
-  allOptionLabel = '전체',
-  getEmployeeId = (emp) => String(emp.id),
-  getEmployeeName = (emp) => emp.name,
-}: SearchableEmployeeSelectProps<T>) {
+type MultiSelectProps<T extends BaseEmployee> = Omit<
+  SearchableEmployeeSelectProps<T>,
+  'value' | 'onValueChange'
+> & {
+  multiple: true
+  values: string[]
+  onValuesChange: (values: string[]) => void
+  value?: never
+  onValueChange?: never
+}
+
+type SingleSelectProps<T extends BaseEmployee> = SearchableEmployeeSelectProps<T> & {
+  multiple?: false
+  values?: never
+  onValuesChange?: never
+}
+
+type SearchableEmployeeSelectUnionProps<T extends BaseEmployee> =
+  | SingleSelectProps<T>
+  | MultiSelectProps<T>
+
+export function SearchableEmployeeSelect<T extends BaseEmployee>(
+  props: SearchableEmployeeSelectUnionProps<T>,
+) {
+  const {
+    employees,
+    placeholder = '직원을 선택하세요',
+    label,
+    showAllOption = false,
+    allOptionLabel = '전체',
+    getEmployeeId = (emp) => String(emp.id),
+    getEmployeeName = (emp) => emp.name,
+  } = props
+  const multiple = props.multiple ?? false
+  const selectedValues = multiple ? props.values ?? EMPTY_VALUES : EMPTY_VALUES
+  const selectedValue = multiple ? '' : props.value
   const [inputValue, setInputValue] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
@@ -48,26 +75,63 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
   useEffect(() => {
     if (isTyping) return
 
-    if (value === 'all') {
+    if (multiple) {
+      if (selectedValues.length === 0) {
+        setInputValue('')
+        return
+      }
+
+      const selectedNames = selectedValues
+        .map((id) => employees.find((emp) => getEmployeeId(emp) === id))
+        .filter(Boolean)
+        .map((emp) => getEmployeeName(emp as T))
+
+      if (selectedNames.length === 0) {
+        setInputValue('')
+        return
+      }
+
+      if (selectedNames.length === 1) {
+        setInputValue(selectedNames[0])
+      } else {
+        setInputValue(`${selectedNames[0]} 외 ${selectedNames.length - 1}명`)
+      }
+      return
+    }
+
+    if (selectedValue === 'all') {
       setInputValue('')
-    } else if (value) {
-      const employee = employees.find((emp) => getEmployeeId(emp) === value)
+    } else if (selectedValue) {
+      const employee = employees.find(
+        (emp) => getEmployeeId(emp) === selectedValue,
+      )
       if (employee) {
         setInputValue(getEmployeeName(employee))
       }
     } else {
       setInputValue('')
     }
-  }, [value, employees, isTyping, getEmployeeId, getEmployeeName])
+  }, [
+    employees,
+    isTyping,
+    getEmployeeId,
+    getEmployeeName,
+    multiple,
+    selectedValues,
+    selectedValue,
+  ])
 
   const filteredEmployees = useMemo(() => {
-    const query = inputValue.trim().toLowerCase()
+    const query = (
+      multiple ? (isTyping ? inputValue : '') : inputValue
+    ).trim()
+    const normalizedQuery = query.toLowerCase()
     if (!query) return employees
 
     return employees.filter((emp) =>
-      getEmployeeName(emp).toLowerCase().includes(query),
+      getEmployeeName(emp).toLowerCase().includes(normalizedQuery),
     )
-  }, [employees, inputValue, getEmployeeName])
+  }, [employees, inputValue, getEmployeeName, multiple, isTyping])
 
   // 드롭다운 위치 계산
   const updateDropdownPosition = useCallback(() => {
@@ -132,21 +196,34 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
     setIsOpen(true)
     setHighlightedIndex(-1)
 
+    if (props.multiple) return
+
     // 입력값을 완전히 지웠을 때만 "전체" 선택 (showAllOption이 true인 경우)
     // value가 비어있지 않은 상태에서 입력값만 지운 경우는 선택 해제
-    if (!newValue && showAllOption && value) {
-      onValueChange('all')
+    if (!newValue && showAllOption && props.value) {
+      props.onValueChange('all')
       setIsTyping(false)
-    } else if (!newValue && !showAllOption && value) {
-      onValueChange('')
+    } else if (!newValue && !showAllOption && props.value) {
+      props.onValueChange('')
       setIsTyping(false)
     }
   }
 
   const handleSelect = (employee: T) => {
+    const employeeId = getEmployeeId(employee)
+
+    if (props.multiple) {
+      const nextValues = selectedValues.includes(employeeId)
+        ? selectedValues.filter((id) => id !== employeeId)
+        : [...selectedValues, employeeId]
+      props.onValuesChange(nextValues)
+      setHighlightedIndex(-1)
+      return
+    }
+
     setIsTyping(false)
     setInputValue(getEmployeeName(employee))
-    onValueChange(getEmployeeId(employee))
+    props.onValueChange(employeeId)
     setIsOpen(false)
     setHighlightedIndex(-1)
   }
@@ -154,7 +231,13 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
   const handleSelectAll = () => {
     setIsTyping(false)
     setInputValue('')
-    onValueChange('all')
+
+    if (props.multiple) {
+      props.onValuesChange([])
+    } else {
+      props.onValueChange('all')
+    }
+
     setIsOpen(false)
     setHighlightedIndex(-1)
   }
@@ -185,7 +268,15 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
       case 'Enter':
         e.preventDefault()
         if (highlightedIndex === -1) {
-          setIsOpen(false)
+          const firstOption = filteredEmployees[0]
+          if (firstOption) {
+            handleSelect(firstOption)
+          } else {
+            setIsOpen(false)
+            if (multiple) {
+              setIsTyping(false)
+            }
+          }
         } else if (showAllOption && highlightedIndex === 0) {
           handleSelectAll()
         } else {
@@ -202,6 +293,9 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
         e.preventDefault()
         setIsOpen(false)
         setHighlightedIndex(-1)
+        if (multiple) {
+          setIsTyping(false)
+        }
         break
 
       default:
@@ -216,6 +310,10 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
 
   const handleClick = () => {
     setIsOpen(true)
+    if (multiple && !isTyping) {
+      setIsTyping(true)
+      setInputValue('')
+    }
   }
 
   // 드롭다운을 Portal로 렌더링
@@ -230,7 +328,8 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
       return null
     }
 
-    const isAllSelected = value === 'all'
+    const isAllSelected = multiple ? selectedValues.length === 0
+      : props.value === 'all'
 
     return createPortal(
       <Theme asChild>
@@ -286,7 +385,9 @@ export function SearchableEmployeeSelect<T extends BaseEmployee>({
                 const actualIndex = showAllOption ? index + 1 : index
                 const empId = getEmployeeId(emp)
                 const empName = getEmployeeName(emp)
-                const isSelected = value === empId
+                const isSelected = multiple
+                  ? selectedValues.includes(empId)
+                  : props.value === empId
                 return (
                   <div
                     key={empId}
