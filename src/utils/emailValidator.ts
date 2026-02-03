@@ -37,7 +37,6 @@ export function validateSignupEmail(email: string) {
     return { valid: false, reason: '이메일을 입력해주세요.' }
   }
 
-  console.log('⭐️ normalized =>', normalized)
   if (!BASIC_EMAIL_REGEX.test(normalized)) {
     return { valid: false, reason: '올바른 이메일 형식을 입력해주세요.' }
   }
