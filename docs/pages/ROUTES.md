@@ -4,7 +4,7 @@
 >
 > **상세 구현**은 [AGENT.md](../../AGENT.md)를, **개발 가이드**는 [CLAUDE.md](../../CLAUDE.md)를 참조하세요.
 
-**최종 업데이트**: 2026-02-02
+**최종 업데이트**: 2026-02-03
 
 ## Quick Links
 
@@ -29,6 +29,7 @@
 | `/night-shift-stats` | NightShiftStats | 야간 근무 통계 | 인증 필요 | [NightShift-PRD.md](./NightShift-PRD.md) |
 | `/settings` | Settings | 시스템 설정 (index) | ADMIN | - |
 | `/settings/leave-management` | UserLeaveManagement | 연차 수동 조정 | ADMIN | - |
+| `/settings/signup-requests` | SignupRequests | 가입 요청 관리 | ADMIN | - |
 | `/settings/history` | UserHistory | 사용자 이력 | ADMIN | - |
 | `/settings/night-shift` | NightShiftManagement | 야간 진료 관리 | ADMIN | [NightShift-PRD.md](./NightShift-PRD.md) |
 
@@ -62,7 +63,7 @@
 
 ### `/login` - Login
 
-Supabase Email/Password 인증. React Hook Form 유효성 검사. AuthProvider로 세션 자동 복원.
+Supabase Email/Password 인증 및 가입 초대 요청 탭 제공. AuthProvider로 세션 자동 복원.
 
 **API**: `useAuthStore.login()`, `getSession()`
 
@@ -95,7 +96,7 @@ FullCalendar 기반 연차 시각화. 월간/주간 뷰, 사용자별 색상 구
 
 ### `/settings/*` - Settings (ADMIN 전용)
 
-시스템 설정. 하위 라우트: 일반 설정, 연차 수동 조정, 사용자 이력, 야간 진료 관리.
+시스템 설정. 하위 라우트: 일반 설정, 연차 수동 조정, 가입 요청 관리, 사용자 이력, 야간 진료 관리.
 
 ---
 
