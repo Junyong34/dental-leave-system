@@ -103,6 +103,9 @@ VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key
 // Leave status
 get_user_leave_status(user_id)
 
+// Calendar
+get_leave_calendar_events(start_date?, end_date?, statuses?)
+
 // Leave operations
 reserve_leave(user_id, date, type, session)
 approve_leave(reservation_id)      // FIFO deduction
