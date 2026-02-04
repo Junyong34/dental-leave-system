@@ -423,6 +423,24 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_leave_calendar_events: {
+        Args: {
+          p_end_date?: string | null
+          p_start_date?: string | null
+          p_statuses?: string[] | null
+        }
+        Returns: {
+          amount: number | null
+          date: string | null
+          event_id: string | null
+          session: string | null
+          source_year: number | null
+          status: string | null
+          type: string | null
+          user_id: string | null
+          user_name: string | null
+        }[]
+      }
       get_night_shift_stats: {
         Args: { p_employee_id: number; p_month?: number; p_year: number }
         Returns: Json

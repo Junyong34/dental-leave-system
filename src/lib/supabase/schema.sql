@@ -316,6 +316,76 @@ BEGIN
 END;
 $$;
 
+-- 캘린더 전용 조회 (모든 인증 사용자)
+CREATE OR REPLACE FUNCTION public.get_leave_calendar_events(
+  p_start_date date,
+  p_end_date date,
+  p_statuses text[] DEFAULT ARRAY['RESERVED', 'USED']
+)
+RETURNS TABLE (
+  event_id text,
+  user_id uuid,
+  user_name text,
+  date date,
+  type text,
+  session text,
+  amount numeric,
+  status text,
+  source_year integer
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authorized.';
+  END IF;
+
+  RETURN QUERY
+  SELECT *
+  FROM (
+    SELECT
+      'history-' || lh.id::text AS event_id,
+      lh.user_id,
+      u.name AS user_name,
+      lh.date,
+      lh.type,
+      lh.session,
+      lh.amount / 10.0 AS amount,
+      'USED' AS status,
+      lh.source_year
+    FROM leave_history lh
+    JOIN users u ON u.user_id = lh.user_id
+    WHERE u.status = 'ACTIVE'
+      AND (p_start_date IS NULL OR lh.date >= p_start_date)
+      AND (p_end_date IS NULL OR lh.date <= p_end_date)
+      AND (p_statuses IS NULL OR 'USED' = ANY(p_statuses))
+
+    UNION ALL
+
+    SELECT
+      'reservation-' || lr.id::text AS event_id,
+      lr.user_id,
+      u.name AS user_name,
+      lr.date,
+      lr.type,
+      lr.session,
+      lr.amount / 10.0 AS amount,
+      'RESERVED' AS status,
+      NULL::integer AS source_year
+    FROM leave_reservations lr
+    JOIN users u ON u.user_id = lr.user_id
+    WHERE u.status = 'ACTIVE'
+      AND lr.status = 'RESERVED'
+      AND (p_start_date IS NULL OR lr.date >= p_start_date)
+      AND (p_end_date IS NULL OR lr.date <= p_end_date)
+      AND (p_statuses IS NULL OR 'RESERVED' = ANY(p_statuses))
+  ) AS events
+  ORDER BY date ASC, event_id ASC;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.reserve_leave(
   p_user_id uuid,
   p_date date,
@@ -743,6 +813,7 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_user_leave_status(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_leave_calendar_events(date, date, text[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.reserve_leave(uuid, date, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_leave(bigint) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_leave(bigint) TO authenticated;

@@ -4,6 +4,7 @@
  */
 
 import type {
+  LeaveCalendarEventRow,
   LeaveBalance,
   LeaveHistory,
   LeaveReservation,
@@ -528,6 +529,43 @@ export async function getAllLeaveHistory(
     }
 
     return { success: true, data: (data || []) as unknown as LeaveHistory[] }
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다',
+    }
+  }
+}
+
+/**
+ * 캘린더 전용 이벤트 조회 (모든 인증 사용자)
+ *
+ * @param startDate - 시작일 (선택)
+ * @param endDate - 종료일 (선택)
+ * @param statuses - 상태 필터 (선택)
+ * @returns 캘린더 이벤트 목록
+ */
+export async function getLeaveCalendarEvents(
+  startDate?: string,
+  endDate?: string,
+  statuses?: ('RESERVED' | 'USED')[],
+): Promise<ApiResponse<LeaveCalendarEventRow[]>> {
+  try {
+    const { data, error } = await supabase.rpc('get_leave_calendar_events', {
+      p_start_date: startDate ?? null,
+      p_end_date: endDate ?? null,
+      p_statuses: statuses && statuses.length > 0 ? statuses : null,
+    })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return {
+      success: true,
+      data: (data || []) as unknown as LeaveCalendarEventRow[],
+    }
   } catch (err) {
     return {
       success: false,

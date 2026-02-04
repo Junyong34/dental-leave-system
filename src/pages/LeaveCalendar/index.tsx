@@ -3,26 +3,22 @@ import type {
   DatesSetArg,
   EventClickArg,
   EventContentArg,
-  EventSourceInput,
+  EventSourceFunc,
 } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin, { type DateClickArg } from '@fullcalendar/interaction'
 import FullCalendar from '@fullcalendar/react'
 import timeGridPlugin from '@fullcalendar/timegrid'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './styles.css'
 import { Box, Flex, Text } from '@radix-ui/themes'
-import {
-  getAllLeaveHistory,
-  getAllLeaveReservations,
-} from '@/lib/supabase/api/leave'
-import { getAllUsers } from '@/lib/supabase/api/user'
+import { getLeaveCalendarEvents } from '@/lib/supabase/api/leave'
+import { useAuthStore } from '@/store/authStore'
 import type {
-  LeaveHistory,
-  LeaveReservation,
+  LeaveCalendarEventRow,
+  LeaveCalendarUser,
   LeaveSession,
   LeaveType,
-  User,
 } from '@/types/leave'
 import { LeaveCalendarFilters } from './LeaveCalendarFilters'
 import { LeaveEventDialog } from './LeaveEventDialog'
@@ -81,64 +77,32 @@ function formatLeaveType(type: LeaveType, session: LeaveSession): string {
 }
 
 /**
- * LeaveHistory를 CalendarEvent로 변환
+ * 캘린더 이벤트 조회 결과를 CalendarEvent로 변환
  */
-function historyToEvent(
-  history: LeaveHistory,
-  userName: string,
+function calendarRowToEvent(
+  row: LeaveCalendarEventRow,
   isMobile: boolean,
 ): CalendarEvent {
-  const colors = getUserColor(history.user_id)
-  const displayName = isMobile ? userName.charAt(0) : userName
-  const typeText = formatLeaveType(history.type, history.session)
+  const colors = getUserColor(row.user_id)
+  const displayName = isMobile ? row.user_name.charAt(0) : row.user_name
+  const typeText = formatLeaveType(row.type, row.session)
 
   return {
-    id: `history-${history.id}`,
+    id: row.event_id,
     title: `${displayName} - ${typeText}`,
-    start: history.date,
+    start: row.date,
     allDay: true,
     backgroundColor: colors.backgroundColor,
     borderColor: colors.borderColor,
     extendedProps: {
-      userId: history.user_id,
-      userName,
-      type: history.type,
-      session: history.session,
-      amount: history.amount,
-      status: 'USED',
-      sourceYear: history.source_year,
-      date: history.date,
-    },
-  }
-}
-
-/**
- * LeaveReservation을 CalendarEvent로 변환
- */
-function reservationToEvent(
-  reservation: LeaveReservation,
-  userName: string,
-  isMobile: boolean,
-): CalendarEvent {
-  const colors = getUserColor(reservation.user_id)
-  const displayName = isMobile ? userName.charAt(0) : userName
-  const typeText = formatLeaveType(reservation.type, reservation.session)
-
-  return {
-    id: `reservation-${reservation.id}`,
-    title: `${displayName} - ${typeText}`,
-    start: reservation.date,
-    allDay: true,
-    backgroundColor: colors.backgroundColor,
-    borderColor: colors.borderColor,
-    extendedProps: {
-      userId: reservation.user_id,
-      userName,
-      type: reservation.type,
-      session: reservation.session,
-      amount: reservation.amount,
-      status: 'RESERVED',
-      date: reservation.date,
+      userId: row.user_id,
+      userName: row.user_name,
+      type: row.type,
+      session: row.session,
+      amount: row.amount,
+      status: row.status,
+      sourceYear: row.source_year ?? undefined,
+      date: row.date,
     },
   }
 }
@@ -147,7 +111,7 @@ export default function LeaveCalendar() {
   // FullCalendar ref
   const calendarRef = useRef<FullCalendar>(null)
 
-  const [allUsers, setAllUsers] = useState<User[]>([])
+  const [allUsers, setAllUsers] = useState<LeaveCalendarUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
 
@@ -155,13 +119,15 @@ export default function LeaveCalendar() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
 
   // 필터 상태
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [showOnlyMine, setShowOnlyMine] = useState(false)
   const [selectedStatuses, setSelectedStatuses] = useState<
     ('RESERVED' | 'USED')[]
   >(['RESERVED', 'USED'])
   const [selectedYear, setSelectedYear] = useState<number>(
     new Date().getFullYear(),
   )
+
+  const loginUserId = useAuthStore((state) => state.user?.id)
 
   // 다이얼로그 상태
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
@@ -178,85 +144,78 @@ export default function LeaveCalendar() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // 사용자 목록 로드 (초기 한 번만)
   useEffect(() => {
-    const loadUsers = async () => {
-      setIsLoading(true)
+    setIsLoading(false)
+  }, [])
+
+  const lastUsersKeyRef = useRef<string>('')
+
+  // 이벤트 로드 함수 (FullCalendar events prop용)
+  const fetchEvents: EventSourceFunc = useCallback(
+    async (_fetchInfo, successCallback, failureCallback) => {
       try {
-        const usersResult = await getAllUsers('ACTIVE')
-        if (usersResult.success && usersResult.data) {
-          setAllUsers(usersResult.data)
+        if (error) {
+          setError('')
+        }
+
+        // 연도 범위 계산
+        const startDate = `${selectedYear}-01-01`
+        const endDate = `${selectedYear}-12-31`
+
+        const eventsResult = await getLeaveCalendarEvents(
+          startDate,
+          endDate,
+          selectedStatuses,
+        )
+
+        if (eventsResult.success && eventsResult.data) {
+          const calendarEvents: CalendarEvent[] = []
+          const userMap = new Map<string, string>()
+
+          for (const row of eventsResult.data) {
+            userMap.set(row.user_id, row.user_name)
+            calendarEvents.push(calendarRowToEvent(row, isMobile))
+          }
+
+          const nextUsers = Array.from(userMap, ([user_id, name]) => ({
+            user_id,
+            name,
+          })).sort((a, b) => a.name.localeCompare(b.name))
+
+          const nextKey = nextUsers
+            .map((user) => `${user.user_id}:${user.name}`)
+            .join('|')
+          if (nextKey !== lastUsersKeyRef.current) {
+            lastUsersKeyRef.current = nextKey
+            setAllUsers(nextUsers)
+          }
+          const filteredEvents =
+            showOnlyMine && loginUserId
+              ? calendarEvents.filter(
+                  (event) => event.extendedProps.userId === loginUserId,
+                )
+              : calendarEvents
+          successCallback(filteredEvents)
+        } else {
+          successCallback([])
         }
       } catch (err) {
-        console.error('사용자 목록 조회 실패:', err)
-        setError('사용자 목록을 불러올 수 없습니다.')
+        console.error('이벤트 로드 실패:', err)
+        failureCallback(err as Error)
+        setError('이벤트를 불러올 수 없습니다.')
       } finally {
         setIsLoading(false)
       }
-    }
-    loadUsers()
-  }, [])
-
-  // 이벤트 로드 함수 (FullCalendar events prop용)
-  const fetchEvents: EventSourceInput = async (
-    _fetchInfo,
-    successCallback,
-    failureCallback,
-  ) => {
-    try {
-      // 연도 범위 계산
-      const startDate = `${selectedYear}-01-01`
-      const endDate = `${selectedYear}-12-31`
-
-      const calendarEvents: CalendarEvent[] = []
-
-      // 사용 완료 이력 조회
-      if (selectedStatuses.includes('USED')) {
-        const historyResult = await getAllLeaveHistory(startDate, endDate)
-        if (historyResult.success && historyResult.data) {
-          for (const history of historyResult.data) {
-            const user = allUsers.find((u) => u.user_id === history.user_id)
-            if (user) {
-              calendarEvents.push(historyToEvent(history, user.name, isMobile))
-            }
-          }
-        }
-      }
-
-      // 예약 조회
-      if (selectedStatuses.includes('RESERVED')) {
-        const reservationsResult = await getAllLeaveReservations('RESERVED')
-        if (reservationsResult.success && reservationsResult.data) {
-          for (const reservation of reservationsResult.data) {
-            // 선택된 연도에 해당하는 예약만 필터링
-            const reservationYear = new Date(reservation.date).getFullYear()
-            if (reservationYear === selectedYear) {
-              const user = allUsers.find(
-                (u) => u.user_id === reservation.user_id,
-              )
-              if (user) {
-                calendarEvents.push(
-                  reservationToEvent(reservation, user.name, isMobile),
-                )
-              }
-            }
-          }
-        }
-      }
-
-      successCallback(calendarEvents)
-    } catch (err) {
-      console.error('이벤트 로드 실패:', err)
-      failureCallback(err as Error)
-    }
-  }
+    },
+    [error, isMobile, selectedStatuses, selectedYear, showOnlyMine, loginUserId],
+  )
 
   // 필터 변경 시 이벤트 다시 로드
   useEffect(() => {
-    if (calendarRef.current && allUsers.length > 0) {
+    if (calendarRef.current) {
       calendarRef.current.getApi().refetchEvents()
     }
-  }, [allUsers])
+  }, [selectedStatuses, selectedYear])
 
   // 이벤트 클릭 핸들러
   const handleEventClick = (clickInfo: EventClickArg) => {
@@ -328,8 +287,8 @@ export default function LeaveCalendar() {
         {/* 필터 */}
         <LeaveCalendarFilters
           allUsers={allUsers}
-          selectedUserIds={selectedUserIds}
-          onUserIdsChange={setSelectedUserIds}
+          showOnlyMine={showOnlyMine}
+          onShowOnlyMineChange={setShowOnlyMine}
           selectedStatuses={selectedStatuses}
           onStatusesChange={setSelectedStatuses}
           selectedYear={selectedYear}

@@ -1,11 +1,10 @@
 import { Box, Checkbox, Flex, Select, Text } from '@radix-ui/themes'
-import { useState } from 'react'
-import type { User } from '@/types/leave'
+import type { LeaveCalendarUser } from '@/types/leave'
 
 interface LeaveCalendarFiltersProps {
-  allUsers: User[]
-  selectedUserIds: string[]
-  onUserIdsChange: (userIds: string[]) => void
+  allUsers: LeaveCalendarUser[]
+  showOnlyMine: boolean
+  onShowOnlyMineChange: (checked: boolean) => void
   selectedStatuses: ('RESERVED' | 'USED')[]
   onStatusesChange: (statuses: ('RESERVED' | 'USED')[]) => void
   selectedYear: number
@@ -14,36 +13,16 @@ interface LeaveCalendarFiltersProps {
 
 export function LeaveCalendarFilters({
   allUsers,
-  selectedUserIds,
-  onUserIdsChange,
+  showOnlyMine,
+  onShowOnlyMineChange,
   selectedStatuses,
   onStatusesChange,
   selectedYear,
   onYearChange,
 }: LeaveCalendarFiltersProps) {
-  const [showUserFilter, setShowUserFilter] = useState(false)
-
   // 연도 옵션 생성 (현재 연도 기준 -2 ~ +2)
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
-
-  // 사용자 선택 토글
-  const toggleUser = (userId: string) => {
-    if (selectedUserIds.includes(userId)) {
-      onUserIdsChange(selectedUserIds.filter((id) => id !== userId))
-    } else {
-      onUserIdsChange([...selectedUserIds, userId])
-    }
-  }
-
-  // 전체 선택/해제
-  const toggleAllUsers = () => {
-    if (selectedUserIds.length === allUsers.length) {
-      onUserIdsChange([])
-    } else {
-      onUserIdsChange(allUsers.map((u) => u.user_id))
-    }
-  }
 
   // 상태 필터 토글
   const toggleStatus = (status: 'RESERVED' | 'USED') => {
@@ -67,9 +46,20 @@ export function LeaveCalendarFilters({
       }}
     >
       <Flex direction="column" gap="4">
-        <Text size="3" weight="medium">
-          필터
-        </Text>
+        <Flex direction="column" gap="2">
+          <Text size="3" weight="medium">
+            필터
+          </Text>
+          <Flex align="center" gap="2" style={{ cursor: 'pointer' }}>
+            <Checkbox
+              checked={showOnlyMine}
+              onCheckedChange={(checked) =>
+                onShowOnlyMineChange(checked === true)
+              }
+            />
+            <Text size="2">내 연차만 보기</Text>
+          </Flex>
+        </Flex>
 
         <Flex gap="4" wrap="wrap">
           {/* 연도 필터 */}
@@ -130,100 +120,11 @@ export function LeaveCalendarFilters({
             </Flex>
           </Box>
 
-          {/* 사용자 필터 */}
-          <Box style={{ flex: 1, minWidth: '200px' }}>
-            <Flex
-              justify="between"
-              align="center"
-              style={{ marginBottom: '8px' }}
-            >
-              <Text as="label" size="2" weight="medium">
-                사용자 필터
-              </Text>
-              <button
-                type="button"
-                onClick={() => setShowUserFilter(!showUserFilter)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--accent-11)',
-                  fontSize: 'var(--font-size-1)',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                }}
-              >
-                {showUserFilter ? '숨기기' : '표시'}
-              </button>
-            </Flex>
-
-            {selectedUserIds.length > 0 && (
-              <Text
-                size="1"
-                style={{ color: 'var(--gray-11)', marginBottom: '8px' }}
-              >
-                {selectedUserIds.length}명 선택됨
-              </Text>
-            )}
-
-            {showUserFilter && (
-              <Box
-                p="3"
-                style={{
-                  backgroundColor: 'var(--color-background)',
-                  border: '1px solid var(--gray-a6)',
-                  borderRadius: 'var(--radius-2)',
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                }}
-              >
-                <Flex direction="column" gap="2">
-                  <label
-                    htmlFor={'total'}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '4px',
-                      borderBottom: '1px solid var(--gray-a5)',
-                    }}
-                  >
-                    <Checkbox
-                      id={'total'}
-                      checked={
-                        selectedUserIds.length === allUsers.length &&
-                        allUsers.length > 0
-                      }
-                      onCheckedChange={toggleAllUsers}
-                    />
-                    <Text size="2" weight="medium">
-                      전체 선택
-                    </Text>
-                  </label>
-
-                  {allUsers.map((user) => (
-                    <label
-                      htmlFor={user.user_id}
-                      key={user.user_id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '4px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Checkbox
-                        id={user.user_id}
-                        checked={selectedUserIds.includes(user.user_id)}
-                        onCheckedChange={() => toggleUser(user.user_id)}
-                      />
-                      <Text size="2">{user.name}</Text>
-                    </label>
-                  ))}
-                </Flex>
-              </Box>
-            )}
-          </Box>
+          {allUsers.length > 0 && (
+            <Text size="1" style={{ color: 'var(--gray-11)' }}>
+              {allUsers.length}명 조회됨
+            </Text>
+          )}
         </Flex>
       </Flex>
     </Box>

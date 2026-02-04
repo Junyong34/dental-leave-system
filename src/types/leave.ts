@@ -126,3 +126,26 @@ export interface LeaveDeductionResult {
   }>
   remainingBalances: LeaveBalance[]
 }
+
+/**
+ * 캘린더 전용 이벤트 조회 결과
+ */
+export interface LeaveCalendarEventRow {
+  event_id: string
+  user_id: string
+  user_name: string
+  date: string // YYYY-MM-DD
+  type: LeaveType
+  session: LeaveSession
+  amount: number // 1.0 or 0.5
+  status: 'RESERVED' | 'USED'
+  source_year: number | null
+}
+
+/**
+ * 캘린더 필터용 사용자 (최소 필드)
+ */
+export interface LeaveCalendarUser {
+  user_id: string
+  name: string
+}
