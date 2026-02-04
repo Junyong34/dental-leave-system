@@ -3,7 +3,6 @@ import {
   Calendar,
   CheckCircle,
   FileText,
-  History,
   LayoutDashboard,
   Menu,
   Moon,
@@ -52,7 +51,7 @@ const navItems: NavItem[] = [
     icon: CheckCircle,
     requiredRoles: ['ADMIN'],
   },
-  { to: '/history', label: '연차 내역', icon: History },
+  // { to: '/history', label: '연차 내역', icon: History },
   { to: '/night-shift-stats', label: '야간 진료', icon: Moon },
   { to: '/settings', label: '설정', icon: Settings, requiredRoles: ['ADMIN'] },
 ]

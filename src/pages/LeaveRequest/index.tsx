@@ -187,8 +187,8 @@ export default function LeaveRequest() {
       </p>
 
       {/* 사용자 선택 */}
-      <Card className="rt-r-mb-4">
-        <Flex direction="column" gap="4" style={{ maxWidth: '300px' }}>
+      <Card className="rt-r-mb-4" style={{ maxWidth: '500px' }}>
+        <Flex direction="column" gap="4">
           <SearchableEmployeeSelect
             employees={activeUsers.map((user) => ({
               id: user.user_id,

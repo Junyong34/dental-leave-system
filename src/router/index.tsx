@@ -67,11 +67,7 @@ const settingsRoutes: RouteObject[] = [
 const protectedRoutes: RouteObject[] = [
   {
     index: true,
-    element: (
-      <RoleRoute requiredRoles={['ADMIN']}>
-        <Dashboard />
-      </RoleRoute>
-    ),
+    element: <Dashboard />,
     loader: dashboardLoader,
   },
   {
