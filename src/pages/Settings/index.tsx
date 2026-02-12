@@ -1,11 +1,5 @@
 import { Box, Button, Flex, Heading, Separator, Text } from '@radix-ui/themes'
-import {
-  History,
-  Mail,
-  Moon,
-  Settings as SettingsIcon,
-  UserCog,
-} from 'lucide-react'
+import { Mail, Moon, Settings as SettingsIcon } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
 
 export default function Settings() {
@@ -16,23 +10,23 @@ export default function Settings() {
       icon: <SettingsIcon size={18} />,
       end: true,
     },
-    {
-      label: '연차 개수 관리',
-      path: '/settings/leave-management',
-      icon: <UserCog size={18} />,
-    },
+    // {
+    //   label: '연차 개수 관리',
+    //   path: '/settings/leave-management',
+    //   icon: <UserCog size={18} />,
+    // },
     {
       label: '가입 요청 관리',
       path: '/settings/signup-requests',
       icon: <Mail size={18} />,
     },
+    // {
+    //   label: '유저 히스토리 데이터 조회',
+    //   path: '/settings/history',
+    //   icon: <History size={18} />,
+    // },
     {
-      label: '유저 히스토리 데이터 조회',
-      path: '/settings/history',
-      icon: <History size={18} />,
-    },
-    {
-      label: '야간 진료 관리',
+      label: '야간 진료 및 연차 관리',
       path: '/settings/night-shift',
       icon: <Moon size={18} />,
     },

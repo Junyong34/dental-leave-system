@@ -6,6 +6,7 @@ import Layout from '@/components/layout/Layout'
 import Dashboard, { loader as dashboardLoader } from '@/pages/Dashboard'
 import LeaveApproval from '@/pages/LeaveApproval'
 import LeaveCalendar from '@/pages/LeaveCalendar'
+import LeaveCalendarView from '@/pages/LeaveCalendarView'
 import LeaveHistory from '@/pages/LeaveHistory'
 import LeaveRequest from '@/pages/LeaveRequest'
 import Login from '@/pages/Login'
@@ -73,6 +74,10 @@ const protectedRoutes: RouteObject[] = [
   {
     path: 'calendar',
     element: <LeaveCalendar />,
+  },
+  {
+    path: 'leave-calendar-view',
+    element: <LeaveCalendarView />,
   },
   {
     path: 'request',

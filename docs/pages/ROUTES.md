@@ -4,7 +4,7 @@
 >
 > **상세 구현**은 [AGENTS.md](../../AGENTS.md)를, **개발 가이드**는 [CLAUDE.md](../../CLAUDE.md)를 참조하세요.
 
-**최종 업데이트**: 2026-02-03
+**최종 업데이트**: 2026-02-11
 
 ## Quick Links
 
@@ -23,6 +23,7 @@
 | `/register` | UserRegistration | 사용자 등록 | 인증 필요 | -                                                  |
 | `/` | Dashboard | 팀원 연차 현황 대시보드 | ADMIN | [AGENTS.md - Dashboard](../../AGENTS.md#dashboard) |
 | `/calendar` | LeaveCalendar | FullCalendar 기반 연차 시각화 | 인증 필요 | [LeaveCalendar-PRD.md](./LeaveCalendar-PRD.md)     |
+| `/leave-calendar-view` | LeaveCalendarView | employees 기반 연차 캘린더 관리 | 인증 필요 | [LeaveCalendarView-RPD.md](./LeaveCalendarView-RPD.md) |
 | `/request` | LeaveRequest | 연차 신청 (종일/반차) | 인증 필요 | [CLAUDE.md](../../CLAUDE.md#leave-request-flow)    |
 | `/approval` | LeaveApproval | 연차 승인/반려 | ADMIN | [CLAUDE.md](../../CLAUDE.md#leave-request-flow)    |
 | `/history` | LeaveHistory | 연차 사용 이력 조회 | 인증 필요 | -                                                  |
@@ -79,6 +80,13 @@ FullCalendar 기반 연차 시각화. 월간/주간 뷰, 사용자별 색상 구
 
 **상세**: [LeaveCalendar-PRD.md](./LeaveCalendar-PRD.md)
 **API**: `getAllLeaveHistory()`, `getAllLeaveReservations()`, `getAllUsers()`
+
+### `/leave-calendar-view` - LeaveCalendarView
+
+`employees` + `employee_leave_records` 기반 신규 연차 캘린더. 사용자 단일 필터, 연차 추가 다이얼로그, 이벤트 상세에서 수정/삭제 제공.
+
+**상세**: [LeaveCalendarView-RPD.md](./LeaveCalendarView-RPD.md)
+**API**: `getEmployeeLeaveCalendarEvents()`, `createEmployeeLeaveRecord()`, `updateEmployeeLeaveRecord()`, `deleteEmployeeLeaveRecord()`
 
 ### `/night-shift-stats` - NightShiftStats
 

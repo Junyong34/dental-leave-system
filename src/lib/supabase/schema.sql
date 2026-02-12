@@ -1197,6 +1197,287 @@ COMMENT ON COLUMN night_shift_records.updated_at IS '마지막 수정 시간';
 
 
 -- ================================================================
+-- 8. EMPLOYEE_LEAVE_RECORDS 테이블
+-- ================================================================
+-- 직원별 연차 캘린더 기록
+
+CREATE TABLE IF NOT EXISTS employee_leave_records (
+  id BIGSERIAL PRIMARY KEY,
+  employee_id BIGINT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  leave_date DATE NOT NULL,
+  leave_type TEXT NOT NULL CHECK (leave_type IN ('FULL', 'HALF', 'QUARTER')),
+  session TEXT CHECK (session IN ('AM', 'PM') OR session IS NULL),
+  leave_unit INTEGER NOT NULL CHECK (leave_unit IN (1, 2, 4)),
+  weekday TEXT NOT NULL CHECK (weekday IN ('MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN')),
+  created_by_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by_name TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_employee_leave_type_session CHECK (
+    (leave_type = 'HALF' AND session IN ('AM', 'PM')) OR
+    (leave_type IN ('FULL', 'QUARTER') AND session IS NULL)
+  )
+);
+
+-- 인덱스
+CREATE INDEX idx_employee_leave_records_employee_id ON employee_leave_records(employee_id);
+CREATE INDEX idx_employee_leave_records_leave_date ON employee_leave_records(leave_date);
+CREATE INDEX idx_employee_leave_records_weekday ON employee_leave_records(weekday);
+CREATE INDEX idx_employee_leave_records_employee_date ON employee_leave_records(employee_id, leave_date DESC);
+
+CREATE UNIQUE INDEX uq_employee_leave_records_full_per_day
+  ON employee_leave_records(employee_id, leave_date)
+  WHERE leave_type = 'FULL';
+
+CREATE UNIQUE INDEX uq_employee_leave_records_half_session_per_day
+  ON employee_leave_records(employee_id, leave_date, session)
+  WHERE leave_type = 'HALF';
+
+-- 코멘트
+COMMENT ON TABLE employee_leave_records IS '직원별 연차 캘린더 기록';
+COMMENT ON COLUMN employee_leave_records.employee_id IS '직원 ID (employees.id 참조)';
+COMMENT ON COLUMN employee_leave_records.leave_date IS '연차 사용 날짜';
+COMMENT ON COLUMN employee_leave_records.leave_type IS '연차 타입 (FULL/HALF/QUARTER)';
+COMMENT ON COLUMN employee_leave_records.session IS '반차 세션 (AM/PM, HALF만 사용)';
+COMMENT ON COLUMN employee_leave_records.leave_unit IS '연차 단위 (FULL=4, HALF=2, QUARTER=1)';
+COMMENT ON COLUMN employee_leave_records.weekday IS '요일 (통계 분석용)';
+COMMENT ON COLUMN employee_leave_records.created_by_name IS '등록 처리자 이름 (users.name)';
+COMMENT ON COLUMN employee_leave_records.updated_by_name IS '마지막 수정자 이름 (users.name)';
+
+
+-- ================================================================
+-- 연차 캘린더 뷰 RPC 함수
+-- ================================================================
+
+-- 연차 기록 기본값 계산/검증 (leave_unit, weekday, 일자 총량)
+CREATE OR REPLACE FUNCTION public.set_employee_leave_record_defaults()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_total_units INTEGER;
+BEGIN
+  NEW.leave_type := UPPER(NEW.leave_type);
+
+  IF NEW.leave_type = 'HALF' THEN
+    IF NEW.session IS NULL OR UPPER(NEW.session) NOT IN ('AM', 'PM') THEN
+      RAISE EXCEPTION 'Half-day requires AM or PM session.';
+    END IF;
+    NEW.session := UPPER(NEW.session);
+  ELSE
+    NEW.session := NULL;
+  END IF;
+
+  NEW.leave_unit := CASE NEW.leave_type
+    WHEN 'FULL' THEN 4
+    WHEN 'HALF' THEN 2
+    WHEN 'QUARTER' THEN 1
+    ELSE 0
+  END;
+
+  NEW.weekday := CASE EXTRACT(DOW FROM NEW.leave_date)
+    WHEN 0 THEN 'SUN'
+    WHEN 1 THEN 'MON'
+    WHEN 2 THEN 'TUE'
+    WHEN 3 THEN 'WED'
+    WHEN 4 THEN 'THU'
+    WHEN 5 THEN 'FRI'
+    WHEN 6 THEN 'SAT'
+  END;
+
+  SELECT COALESCE(SUM(leave_unit), 0)
+  INTO v_total_units
+  FROM employee_leave_records
+  WHERE employee_id = NEW.employee_id
+    AND leave_date = NEW.leave_date
+    AND (TG_OP = 'INSERT' OR id <> NEW.id);
+
+  IF v_total_units + NEW.leave_unit > 4 THEN
+    RAISE EXCEPTION 'Daily leave limit exceeded. Maximum is FULL(1) = HALF(2) = QUARTER(4).';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 연차 캘린더 이벤트 조회 (전체 인증 사용자)
+CREATE OR REPLACE FUNCTION public.get_employee_leave_calendar_events(
+  p_start_date date DEFAULT NULL,
+  p_end_date date DEFAULT NULL,
+  p_employee_id bigint DEFAULT NULL
+)
+RETURNS TABLE (
+  event_id text,
+  record_id bigint,
+  employee_id bigint,
+  employee_name text,
+  leave_date date,
+  leave_type text,
+  session text,
+  leave_unit integer,
+  weekday text,
+  employee_status text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authorized.';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    'employee-leave-' || elr.id::text AS event_id,
+    elr.id,
+    elr.employee_id,
+    e.name,
+    elr.leave_date,
+    elr.leave_type,
+    elr.session,
+    elr.leave_unit,
+    elr.weekday,
+    e.status
+  FROM employee_leave_records elr
+  JOIN employees e ON e.id = elr.employee_id
+  WHERE (p_start_date IS NULL OR elr.leave_date >= p_start_date)
+    AND (p_end_date IS NULL OR elr.leave_date <= p_end_date)
+    AND (p_employee_id IS NULL OR elr.employee_id = p_employee_id)
+  ORDER BY elr.leave_date ASC, elr.id ASC;
+END;
+$$;
+
+-- 연차 기록 생성
+CREATE OR REPLACE FUNCTION public.create_employee_leave_record(
+  p_employee_id bigint,
+  p_leave_date date,
+  p_leave_type text,
+  p_session text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_record_id bigint;
+BEGIN
+  IF NOT is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  INSERT INTO employee_leave_records (
+    employee_id,
+    leave_date,
+    leave_type,
+    session
+  )
+  VALUES (
+    p_employee_id,
+    p_leave_date,
+    UPPER(p_leave_type),
+    CASE WHEN p_session IS NULL OR p_session = '' THEN NULL ELSE UPPER(p_session) END
+  )
+  RETURNING id INTO v_record_id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Employee leave record created.',
+    'record_id', v_record_id
+  );
+EXCEPTION
+  WHEN foreign_key_violation THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Employee not found.');
+  WHEN unique_violation THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Duplicate leave record for same date/session.');
+  WHEN check_violation THEN
+    RETURN jsonb_build_object('success', false, 'message', SQLERRM);
+  WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'message', SQLERRM);
+END;
+$$;
+
+-- 연차 기록 수정
+CREATE OR REPLACE FUNCTION public.update_employee_leave_record(
+  p_record_id bigint,
+  p_employee_id bigint,
+  p_leave_date date,
+  p_leave_type text,
+  p_session text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_updated_id bigint;
+BEGIN
+  IF NOT is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  UPDATE employee_leave_records
+  SET
+    employee_id = p_employee_id,
+    leave_date = p_leave_date,
+    leave_type = UPPER(p_leave_type),
+    session = CASE WHEN p_session IS NULL OR p_session = '' THEN NULL ELSE UPPER(p_session) END
+  WHERE id = p_record_id
+  RETURNING id INTO v_updated_id;
+
+  IF v_updated_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Leave record not found.');
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'Employee leave record updated.',
+    'record_id', v_updated_id
+  );
+EXCEPTION
+  WHEN foreign_key_violation THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Employee not found.');
+  WHEN unique_violation THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Duplicate leave record for same date/session.');
+  WHEN check_violation THEN
+    RETURN jsonb_build_object('success', false, 'message', SQLERRM);
+  WHEN OTHERS THEN
+    RETURN jsonb_build_object('success', false, 'message', SQLERRM);
+END;
+$$;
+
+-- 연차 기록 삭제
+CREATE OR REPLACE FUNCTION public.delete_employee_leave_record(
+  p_record_id bigint
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_deleted_id bigint;
+BEGIN
+  IF NOT is_admin() THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Not authorized.');
+  END IF;
+
+  DELETE FROM employee_leave_records
+  WHERE id = p_record_id
+  RETURNING id INTO v_deleted_id;
+
+  IF v_deleted_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Leave record not found.');
+  END IF;
+
+  RETURN jsonb_build_object('success', true, 'message', 'Employee leave record deleted.');
+END;
+$$;
+
+
+-- ================================================================
 -- 야간 근무 RPC 함수
 -- ================================================================
 
@@ -1330,6 +1611,10 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_night_shift_stats(BIGINT, INTEGER, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_all_employees_night_shift_stats(INTEGER, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_night_shift_record(BIGINT, DATE) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_employee_leave_calendar_events(DATE, DATE, BIGINT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_employee_leave_record(BIGINT, DATE, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.update_employee_leave_record(BIGINT, BIGINT, DATE, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_employee_leave_record(BIGINT) TO authenticated;
 
 
 -- ================================================================
@@ -1381,6 +1666,21 @@ CREATE POLICY "night_shift_records_update" ON night_shift_records
 CREATE POLICY "night_shift_records_delete" ON night_shift_records
   FOR DELETE USING (is_admin());
 
+-- employee_leave_records
+ALTER TABLE employee_leave_records ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "employee_leave_records_select" ON employee_leave_records
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "employee_leave_records_insert" ON employee_leave_records
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "employee_leave_records_update" ON employee_leave_records
+  FOR UPDATE USING (is_admin()) WITH CHECK (is_admin());
+
+CREATE POLICY "employee_leave_records_delete" ON employee_leave_records
+  FOR DELETE USING (is_admin());
+
 
 -- ================================================================
 -- 야간 근무 트리거: updated_at 자동 갱신
@@ -1400,3 +1700,23 @@ CREATE TRIGGER update_night_shift_records_updated_at
   BEFORE UPDATE ON night_shift_records
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER set_employee_leave_records_defaults
+  BEFORE INSERT OR UPDATE ON employee_leave_records
+  FOR EACH ROW
+  EXECUTE FUNCTION set_employee_leave_record_defaults();
+
+CREATE TRIGGER update_employee_leave_records_updated_at
+  BEFORE UPDATE ON employee_leave_records
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER set_employee_leave_records_created_by
+  BEFORE INSERT ON employee_leave_records
+  FOR EACH ROW
+  EXECUTE FUNCTION set_created_by_name_column();
+
+CREATE TRIGGER set_employee_leave_records_updated_by
+  BEFORE UPDATE ON employee_leave_records
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_by_name_column();

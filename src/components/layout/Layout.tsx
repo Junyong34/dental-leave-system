@@ -17,7 +17,7 @@ export default function Layout() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col rt-r-gap-4 rt-r-m-6 ">
+    <div className="min-h-screen bg-gray-50 flex flex-col rt-r-gap-4 rt-r-m-4 ">
       <Header />
 
       <main className="max-w-7xl py-6 sm:px-6 lg:px-8">

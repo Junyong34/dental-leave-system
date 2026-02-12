@@ -41,6 +41,56 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_leave_records: {
+        Row: {
+          created_at: string | null
+          created_by_name: string | null
+          employee_id: number
+          id: number
+          leave_date: string
+          leave_type: string
+          leave_unit: number
+          session: string | null
+          updated_at: string | null
+          updated_by_name: string | null
+          weekday: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_name?: string | null
+          employee_id: number
+          id?: number
+          leave_date: string
+          leave_type: string
+          leave_unit?: number
+          session?: string | null
+          updated_at?: string | null
+          updated_by_name?: string | null
+          weekday?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_name?: string | null
+          employee_id?: number
+          id?: number
+          leave_date?: string
+          leave_type?: string
+          leave_unit?: number
+          session?: string | null
+          updated_at?: string | null
+          updated_by_name?: string | null
+          weekday?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'employee_leave_records_employee_id_fkey'
+            columns: ['employee_id']
+            isOneToOne: false
+            referencedRelation: 'employees'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       leave_balances: {
         Row: {
           created_at: string | null
@@ -409,11 +459,43 @@ export type Database = {
         Returns: Json
       }
       cancel_leave_history: { Args: { p_history_id: number }; Returns: Json }
+      create_employee_leave_record: {
+        Args: {
+          p_employee_id: number
+          p_leave_date: string
+          p_leave_type: string
+          p_session?: string
+        }
+        Returns: Json
+      }
       create_night_shift_record: {
         Args: { p_employee_id: number; p_work_date: string }
         Returns: Json
       }
+      delete_employee_leave_record: {
+        Args: { p_record_id: number }
+        Returns: Json
+      }
       get_actor_name: { Args: never; Returns: string }
+      get_employee_leave_calendar_events: {
+        Args: {
+          p_employee_id?: number | null
+          p_end_date?: string | null
+          p_start_date?: string | null
+        }
+        Returns: {
+          employee_id: number | null
+          employee_name: string | null
+          employee_status: string | null
+          event_id: string | null
+          leave_date: string | null
+          leave_type: string | null
+          leave_unit: number | null
+          record_id: number | null
+          session: string | null
+          weekday: string | null
+        }[]
+      }
       get_all_employees_night_shift_stats: {
         Args: { p_month?: number; p_year: number }
         Returns: {
@@ -455,6 +537,16 @@ export type Database = {
           p_session: string
           p_type: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      update_employee_leave_record: {
+        Args: {
+          p_employee_id: number
+          p_leave_date: string
+          p_leave_type: string
+          p_record_id: number
+          p_session?: string
         }
         Returns: Json
       }

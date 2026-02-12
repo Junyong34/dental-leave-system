@@ -64,7 +64,6 @@ const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 const CURRENT_YEAR = new Date().getFullYear()
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
 
-
 function NightShiftStatsPage() {
   const [year, setYear] = useState(CURRENT_YEAR)
   const [month, setMonth] = useState<number | null>(null)
@@ -405,7 +404,7 @@ function NightShiftStatsPage() {
   }
 
   return (
-    <div className="rt-r-p-6" style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="rt-r-p-4" style={{ maxWidth: '1400px', margin: '0 auto' }}>
       <Flex direction="column" gap="4">
         {/* 헤더 */}
         <div>
@@ -496,11 +495,12 @@ function NightShiftStatsPage() {
             </Flex>
 
             <Flex gap="2" style={{ marginLeft: 'auto' }}>
-              <Button onClick={() => setIsAddRecordOpen(true)}>
+              <Button size={'1'} onClick={() => setIsAddRecordOpen(true)}>
                 <Plus size={16} />
                 야간진료 추가
               </Button>
               <Button
+                size={'1'}
                 variant="soft"
                 onClick={handleExportCSV}
                 disabled={filteredStats.length === 0}
@@ -539,7 +539,7 @@ function NightShiftStatsPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                 gap: 'var(--space-4)',
               }}
             >
@@ -595,9 +595,7 @@ function NightShiftStatsPage() {
                             ? 'solid'
                             : 'soft'
                         }
-                        onClick={() =>
-                          setSelectedRecordDate(dateOption.value)
-                        }
+                        onClick={() => setSelectedRecordDate(dateOption.value)}
                       >
                         {dateOption.label}
                       </Button>

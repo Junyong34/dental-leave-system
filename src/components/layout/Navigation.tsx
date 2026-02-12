@@ -1,9 +1,7 @@
 import { Dialog, IconButton } from '@radix-ui/themes'
 import {
-  Calendar,
-  CheckCircle,
-  FileText,
-  LayoutDashboard,
+  CalendarPlus,
+  type LayoutDashboard,
   Menu,
   Moon,
   Settings,
@@ -42,15 +40,16 @@ type NavItem = {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: '대시보드', icon: LayoutDashboard },
-  { to: '/calendar', label: '연차 캘린더', icon: Calendar },
-  { to: '/request', label: '연차 신청', icon: FileText },
-  {
-    to: '/approval',
-    label: '연차 승인',
-    icon: CheckCircle,
-    requiredRoles: ['ADMIN'],
-  },
+  // { to: '/', label: '대시보드', icon: LayoutDashboard },
+  // { to: '/calendar', label: '연차 캘린더', icon: Calendar },
+  { to: '/leave-calendar-view', label: '연차 캘린더 뷰', icon: CalendarPlus },
+  // { to: '/request', label: '연차 신청', icon: FileText },
+  // {
+  //   to: '/approval',
+  //   label: '연차 승인',
+  //   icon: CheckCircle,
+  //   requiredRoles: ['ADMIN'],
+  // },
   // { to: '/history', label: '연차 내역', icon: History },
   { to: '/night-shift-stats', label: '야간 진료', icon: Moon },
   { to: '/settings', label: '설정', icon: Settings, requiredRoles: ['ADMIN'] },
